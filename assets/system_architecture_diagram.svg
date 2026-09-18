@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%" style="background-color: #0d1117; font-family: system-ui, -apple-system, sans-serif;">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b22" />
+      <stop offset="100%" stop-color="#21262d" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#238636" />
+      <stop offset="100%" stop-color="#2ea043" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1f6feb" />
+      <stop offset="100%" stop-color="#388bfd" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8957e5" />
+      <stop offset="100%" stop-color="#a371f7" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" fill="#f0f6fc" font-size="22" font-weight="700" letter-spacing="1">VOICE ACCESSIBILITY ASSISTANT — SYSTEM ARCHITECTURE</text>
+  <text x="500" y="65" text-anchor="middle" fill="#8b949e" font-size="13">Bilingual (Amharic &amp; English) End-to-End Pipeline Context Diagram</text>
+
+  <!-- Blind User Node -->
+  <g transform="translate(400, 90)" filter="url(#shadow)">
+    <rect width="200" height="50" rx="25" fill="url(#blueGrad)" />
+    <text x="100" y="30" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="600">👤 Blind User</text>
+  </g>
+
+  <!-- Arrow: User -> Mobile -->
+  <path d="M 500,140 L 500,175" stroke="#388bfd" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="4 4"/>
+  <text x="515" y="162" fill="#58a6ff" font-size="12" font-weight="500">Spoken Speech Command</text>
+
+  <!-- Mobile Client Box -->
+  <g transform="translate(100, 180)" filter="url(#shadow)">
+    <rect width="800" height="200" rx="12" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5"/>
+    <text x="25" y="32" fill="#f0f6fc" font-size="16" font-weight="700">📱 Mobile Client (Android)</text>
+    <text x="240" y="32" fill="#8b949e" font-size="12">(React Native + Kotlin Native Layer)</text>
+
+    <!-- React Native UI Sub-box -->
+    <rect x="25" y="50" width="350" height="125" rx="8" fill="#0d1117" stroke="#30363d"/>
+    <text x="40" y="75" fill="#58a6ff" font-size="14" font-weight="600">React Native Layer (UI &amp; State)</text>
+    <text x="40" y="98" fill="#8b949e" font-size="12">• Onboarding, Consent &amp; Settings</text>
+    <text x="40" y="118" fill="#8b949e" font-size="12">• History &amp; Outcome Display</text>
+    <text x="40" y="138" fill="#8b949e" font-size="12">• Account &amp; Subscription State</text>
+    <text x="40" y="158" fill="#e3b341" font-size="11">⚠️ No voice pipeline logic crosses JS bridge</text>
+
+    <!-- TurboModule Bridge Arrow -->
+    <path d="M 385,112 L 415,112" stroke="#8957e5" stroke-width="2"/>
+    <text x="400" y="102" text-anchor="middle" fill="#a371f7" font-size="10" font-weight="600">TurboModule</text>
+
+    <!-- Kotlin Native Core Sub-box -->
+    <rect x="425" y="50" width="350" height="125" rx="8" fill="#0d1117" stroke="#238636"/>
+    <text x="440" y="75" fill="#3fb950" font-size="14" font-weight="600">Kotlin Native Pipeline &amp; Executor</text>
+    <text x="440" y="98" fill="#8b949e" font-size="12">• Wake Word Detection &amp; Audio VAD</text>
+    <text x="440" y="118" fill="#8b949e" font-size="12">• Audio Capture &amp; HTTPS Upload</text>
+    <text x="440" y="138" fill="#8b949e" font-size="12">• Android AccessibilityService Executor</text>
+    <text x="440" y="158" fill="#8b949e" font-size="12">• On-device English &amp; Queue Amharic TTS</text>
+  </g>
+
+  <!-- Arrow: Mobile -> Backend -->
+  <path d="M 600,380 L 600,430" stroke="#3fb950" stroke-width="2.5"/>
+  <text x="615" y="410" fill="#3fb950" font-size="12" font-weight="500">HTTPS (Audio Buffer, View-Tree Context)</text>
+
+  <!-- Arrow: Mobile -> User's Apps -->
+  <path d="M 200,380 L 200,430" stroke="#a371f7" stroke-width="2.5"/>
+  <text x="215" y="410" fill="#a371f7" font-size="12" font-weight="500">Accessibility Gestures &amp; Read View Tree</text>
+
+  <!-- User's Own Apps Node -->
+  <g transform="translate(50, 440)" filter="url(#shadow)">
+    <rect width="300" height="160" rx="10" fill="url(#cardGrad)" stroke="#8957e5" stroke-width="1.5"/>
+    <text x="20" y="35" fill="#d2a8ff" font-size="15" font-weight="700">📲 User's Own Phone Apps</text>
+    <text x="20" y="60" fill="#8b949e" font-size="12">• Banking &amp; Financial Apps</text>
+    <text x="20" y="80" fill="#8b949e" font-size="12">• Messaging &amp; System Settings</text>
+    <text x="20" y="100" fill="#8b949e" font-size="12">• Phone &amp; Dialer Apps</text>
+    <rect x="20" y="115" width="260" height="30" rx="4" fill="#21262d"/>
+    <text x="150" y="135" text-anchor="middle" fill="#f0f6fc" font-size="11">Driven via Android AccessibilityService</text>
+  </g>
+
+  <!-- Backend API Monolith Box -->
+  <g transform="translate(420, 440)" filter="url(#shadow)">
+    <rect width="360" height="160" rx="10" fill="url(#cardGrad)" stroke="#1f6feb" stroke-width="1.5"/>
+    <text x="20" y="32" fill="#58a6ff" font-size="15" font-weight="700">⚙️ Backend API (Modular Monolith)</text>
+    <text x="20" y="55" fill="#8b949e" font-size="12">Node.js / Express / TypeScript</text>
+
+    <text x="20" y="80" fill="#8b949e" font-size="12">• Auth &amp; Session Management</text>
+    <text x="20" y="98" fill="#8b949e" font-size="12">• Command Orchestration &amp; Allowlist Gate</text>
+    <text x="20" y="116" fill="#8b949e" font-size="12">• Consent, Telemetry &amp; Billing</text>
+    <text x="20" y="134" fill="#8b949e" font-size="12">• Holds Addis AI Vendor API Credentials</text>
+  </g>
+
+  <!-- Postgres Database Box -->
+  <g transform="translate(810, 440)" filter="url(#shadow)">
+    <rect width="140" height="75" rx="8" fill="url(#cardGrad)" stroke="#30363d"/>
+    <text x="70" y="35" text-anchor="middle" fill="#f0f6fc" font-size="13" font-weight="600">🐘 Postgres</text>
+    <text x="70" y="55" text-anchor="middle" fill="#8b949e" font-size="11">Source of Truth</text>
+  </g>
+
+  <!-- Addis AI Vendor Box -->
+  <g transform="translate(810, 525)" filter="url(#shadow)">
+    <rect width="140" height="75" rx="8" fill="url(#cardGrad)" stroke="#d29922"/>
+    <text x="70" y="32" text-anchor="middle" fill="#f2cc60" font-size="13" font-weight="600">☁️ Addis AI</text>
+    <text x="70" y="50" text-anchor="middle" fill="#8b949e" font-size="10">Amharic STT &amp; TTS</text>
+    <text x="70" y="64" text-anchor="middle" fill="#8b949e" font-size="10">Addis-፩-አሌፍ LLM</text>
+  </g>
+
+  <!-- Connectors from Backend -->
+  <path d="M 780,475 L 810,475" stroke="#58a6ff" stroke-width="2"/>
+  <path d="M 780,560 L 810,560" stroke="#d29922" stroke-width="2"/>
+
+</svg>

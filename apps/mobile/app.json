@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "EchoGuide",
+    "slug": "echoguide-mobile",
+    "version": "1.0.0",
+    "sdkVersion": "57.0.0",
+    "newArchEnabled": true,
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d1117"
+      },
+      "package": "com.echoguide.mobile",
+      "permissions": [
+        "RECORD_AUDIO",
+        "BIND_ACCESSIBILITY_SERVICE",
+        "SYSTEM_ALERT_WINDOW",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow EchoGuide to capture voice commands for accessibility automation."
+        }
+      ],
+      "expo-status-bar",
+      "expo-router"
+    ]
+  }
+}

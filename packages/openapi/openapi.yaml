@@ -1,0 +1,106 @@
+openapi: 3.0.3
+info:
+  title: EchoGuide Voice Accessibility API
+  version: 1.0.0
+  description: API backend specification for EchoGuide Voice Accessibility Assistant (Amharic & English).
+servers:
+  - url: https://api.echoguide.app/v1
+    description: Production API Server
+paths:
+  /commands:
+    post:
+      summary: Upload voice command buffer & screen context for transcription and action planning
+      operationId: processCommand
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Install-ID
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandRequest'
+      responses:
+        '200':
+          description: Planned action sequence or reprompt instruction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          description: Invalid request or audio buffer below 0.4s
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Provider failure or timeout
+
+components:
+  schemas:
+    CommandRequest:
+      type: object
+      required:
+        - audio_base64
+        - duration_ms
+        - screen_context
+      properties:
+        audio_base64:
+          type: string
+          description: 16kHz mono PCM 16-bit audio buffer
+        duration_ms:
+          type: integer
+          minimum: 400
+          maximum: 15000
+        screen_context:
+          type: object
+          properties:
+            current_package:
+              type: string
+            view_tree_summary:
+              type: string
+
+    CommandResponse:
+      type: object
+      required:
+        - command_id
+        - status
+      properties:
+        command_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED, REPROMPT, CONFIRMATION_REQUIRED]
+        reprompt_reason:
+          type: string
+        action_plan:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionStep'
+
+    ActionStep:
+      type: object
+      required:
+        - step_id
+        - action_type
+        - is_destructive
+      properties:
+        step_id:
+          type: string
+        action_type:
+          type: string
+          enum: [TAP, SCROLL, TEXT_INPUT, BACK, HOME]
+        target_node_id:
+          type: string
+        payload:
+          type: string
+        is_destructive:
+          type: boolean

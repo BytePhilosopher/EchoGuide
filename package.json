@@ -1,0 +1,29 @@
+{
+  "name": "echoguide-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice Accessibility Assistant — Monorepo (Expo SDK 57, Node API, Next.js Admin, Astro Docs)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "start:mobile": "npm run start --workspace=@echoguide/mobile",
+    "start:api": "npm run dev --workspace=@echoguide/api",
+    "start:admin": "npm run dev --workspace=@echoguide/admin",
+    "start:docs": "npm run dev --workspace=@echoguide/docs"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.5",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
