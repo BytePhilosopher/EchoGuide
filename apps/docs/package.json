@@ -2,19 +2,18 @@
   "name": "@echoguide/docs",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev -p 3002",
-    "build": "next build",
-    "start": "next start -p 3002"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "dependencies": {
-    "next": "^14.2.3",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.12.7",
-    "@types/react": "^18.3.1",
-    "typescript": "^5.4.5"
+    "@astrojs/starlight": "^0.42.2",
+    "astro": "^7.2.10",
+    "cookie": "^2.0.1",
+    "sharp": "^0.35.3"
   }
 }
