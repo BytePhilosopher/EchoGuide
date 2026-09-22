@@ -3,6 +3,8 @@ title: Voice commands
 description: How EchoGuide turns a spoken sentence into actions, and what each of the four outcomes means.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 EchoGuide does not match your speech against a fixed list of phrases. It transcribes what
 you said, plans a sequence of actions against what is currently on screen, and then
 validates that plan before anything is allowed to run.
@@ -63,3 +65,60 @@ has crashed. EchoGuide treats silence as a bug: every state, including every rej
 every error, is announced.
 
 If EchoGuide ever goes quiet mid-command, that is worth reporting.
+
+## Sending a command
+
+Both clients post the same payload to `/v1/commands`. Every request carries
+`X-Install-ID` to identify the installation and `X-Idempotency-Key` so a retry cannot
+execute the same command twice.
+
+<Tabs syncKey="client">
+<TabItem label="Kotlin">
+
+```kotlin
+val response = client.post("/v1/commands") {
+    header("X-Install-ID", installId)
+    header("X-Idempotency-Key", UUID.randomUUID().toString())
+    contentType(ContentType.Application.Json)
+    setBody(
+        CommandRequest(
+            audioBase64 = buffer.toBase64(),
+            durationMs = buffer.durationMs,
+            language = "am-ET",
+            screenContext = ScreenContext(
+                currentPackage = activePackageName,
+                viewTreeSummary = reducedTree,
+            ),
+        )
+    )
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch('/v1/commands', {
+	method: 'POST',
+	headers: {
+		'Content-Type': 'application/json',
+		'X-Install-ID': installId,
+		'X-Idempotency-Key': crypto.randomUUID(),
+	},
+	body: JSON.stringify({
+		audio_base64: audioBase64,
+		duration_ms: durationMs,
+		language: 'am-ET',
+		screen_context: {
+			current_package: activePackageName,
+			view_tree_summary: reducedTree,
+		},
+	}),
+});
+```
+
+</TabItem>
+</Tabs>
+
+`duration_ms` must fall between 400 and 15000. Anything shorter is discarded before it
+reaches the transcriber, and anything longer is rejected outright.

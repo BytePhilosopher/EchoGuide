@@ -2,47 +2,12 @@
 title: EchoGuide
 description: Bilingual Amharic and English voice assistant that lets blind and low-vision users drive any Android app by speaking.
 template: splash
-hero:
-  tagline: Speak Amharic or English. EchoGuide drives the app for you — no screen required.
-  actions:
-    - text: Get set up
-      link: /guides/quickstart/
-      icon: right-arrow
-    - text: How it works
-      link: /reference/architecture/
-      icon: document
-      variant: minimal
+editUrl: false
+lastUpdated: false
+next: false
+prev: false
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import Landing from '../../components/landing/Landing.astro';
 
-Most Android apps assume you can see them. EchoGuide removes that assumption. You say what
-you want in Amharic or English, and it operates the real app on your behalf — tapping,
-scrolling, and typing through Android's accessibility layer.
-
-<CardGrid>
-	<Card title="Amharic first" icon="translate">
-		Speech models from Addis AI, purpose-built for Amharic rather than
-		retrofitted from English. Around **3% word error rate** on Amharic speech.
-	</Card>
-	<Card title="Drives real apps" icon="rocket">
-		A native Kotlin `AccessibilityService` performs the taps and swipes, so
-		EchoGuide works with third-party apps you already have installed.
-	</Card>
-	<Card title="Never silent" icon="approve-check">
-		Every state is announced aloud. If you cannot see the screen, silence is
-		indistinguishable from a crash — so EchoGuide treats it as one.
-	</Card>
-	<Card title="Stores nothing by default" icon="seti:lock">
-		No audio and no transcripts are retained unless you explicitly opt in.
-		[Read what that means](/reference/privacy/).
-	</Card>
-</CardGrid>
-
-## Where to go next
-
-New here? Start with the [Quickstart](/guides/quickstart/) — it covers granting the
-accessibility permission, which is the one step that genuinely cannot be skipped.
-
-Already running it? The [voice command reference](/guides/voice-commands/) lists how
-EchoGuide decides what to do with what you said.
+<Landing />

@@ -1,0 +1,176 @@
+---
+import '../../styles/landing.css';
+
+const ASCII_CHARS = ' ·:-=+*#%@';
+const ASCII_COLS = 210;
+const ASCII_ROWS = 46;
+
+const asciiField = Array.from({ length: ASCII_ROWS }, (_, y) =>
+	Array.from({ length: ASCII_COLS }, (_, x) => {
+		const wave = Math.sin(x / 6.5) * Math.cos(x / 19 + y / 8) + Math.sin(x / 3.1 + y / 4.5) * 0.45;
+		const band = 1 - Math.abs(y - (ASCII_ROWS - 1) / 2) / ((ASCII_ROWS - 1) / 2);
+		const level = (wave * 0.5 + 0.5) * band ** 1.4;
+		const index = Math.round(level * (ASCII_CHARS.length - 1));
+		return ASCII_CHARS[Math.min(ASCII_CHARS.length - 1, Math.max(0, index))];
+	}).join(''),
+).join('\n');
+
+const leadStat = { value: '3', unit: '%', label: 'Amharic word error rate', note: 'Purpose-built models, not retrofitted from English' };
+
+const stats = [
+	{ value: '400', unit: 'ms', label: 'To spoken acknowledgement' },
+	{ value: '5', label: 'Allowlisted actions' },
+	{ value: '0', label: 'Unintended destructive actions' },
+];
+
+const pipeline = [
+	{ n: '፩', title: 'Capture', body: 'Wake word and voice activity detection run on the phone. Audio under 0.4 seconds never leaves it.' },
+	{ n: '፪', title: 'Transcribe', body: 'Addis AI speech models, purpose-built for Amharic rather than retrofitted from English.' },
+	{ n: '፫', title: 'Gate', body: 'Three signals decide whether the transcript is trustworthy. A bad guess is worse than asking twice.' },
+	{ n: '፬', title: 'Plan', body: 'The model proposes a sequence of interface actions against what is currently on screen.' },
+	{ n: '፭', title: 'Execute', body: 'A native Kotlin accessibility service performs the taps. Every state is announced aloud.' },
+];
+
+const exchange = [
+	{ who: 'You', kind: 'said', text: 'Open my messages and read the last one.' },
+	{ who: 'EchoGuide', kind: 'spoke', text: 'Opening Messages.' },
+	{ who: 'EchoGuide', kind: 'did', text: 'taps Messages, scrolls to the newest thread' },
+	{ who: 'EchoGuide', kind: 'spoke', text: 'Message from Selam. Are you free at four?' },
+];
+
+const paths = [
+	{
+		title: 'Using EchoGuide',
+		body: 'Turn on the permission, learn what it says back, and what happens when it is unsure.',
+		href: '/guides/using-echoguide/',
+		cta: 'Start here',
+	},
+	{
+		title: 'Building on EchoGuide',
+		body: 'Run the stack locally, read the command contract, and see how the pipeline is put together.',
+		href: '/guides/quickstart/',
+		cta: 'Developer quickstart',
+	},
+];
+---
+
+<div class="landing not-content">
+	<section class="hero-slab" data-reveal>
+		<pre class="ascii-bg" aria-hidden="true">{asciiField}</pre>
+		<h1 class="mega">
+			<span class="line">SPEAK IT.</span>
+			<span class="line outline">IT TAPS.</span>
+		</h1>
+		<p class="lede">
+			Most Android apps assume you can see them. EchoGuide removes that assumption — you say
+			what you want, and it drives the real app on your behalf.
+		</p>
+		<div class="cta-row">
+			<a class="btn-solid" href="/guides/using-echoguide/">Start using it<span aria-hidden="true">→</span></a>
+			<a class="btn-ghost" href="/guides/quickstart/">I'm a developer</a>
+		</div>
+	</section>
+
+	<section class="stats" data-reveal>
+		<article class="stat lead">
+			<p class="stat-value">{leadStat.value}<span class="unit">{leadStat.unit}</span></p>
+			<p class="stat-label">{leadStat.label}</p>
+			<p class="stat-note">{leadStat.note}</p>
+		</article>
+		<div class="stat-rest">
+			{stats.map((s) => (
+				<article class="stat">
+					<p class="stat-value">{s.value}{s.unit && <span class="unit">{s.unit}</span>}</p>
+					<p class="stat-label">{s.label}</p>
+				</article>
+			))}
+		</div>
+	</section>
+
+	<section class="exchange" data-reveal>
+		<h2 class="section-title">What it sounds like</h2>
+		<p class="section-lede">You speak the way you normally would. EchoGuide says what it is doing, then does it.</p>
+		<ol class="turns">
+			{exchange.map((turn) => (
+				<li class={`turn turn-${turn.kind}`}>
+					<span class="who">{turn.who}</span>
+					<span class="what">{turn.kind === 'did' ? <em>{turn.text}</em> : `“${turn.text}”`}</span>
+				</li>
+			))}
+		</ol>
+		<p class="turn-note">Illustrative. There is no command list to memorise — phrasing is up to you, in Amharic or English.</p>
+	</section>
+
+	<section class="paths" data-reveal>
+		{paths.map((path) => (
+			<a class="path" href={path.href}>
+				<h2>{path.title}</h2>
+				<p>{path.body}</p>
+				<span class="path-cta">{path.cta}<span aria-hidden="true">→</span></span>
+			</a>
+		))}
+	</section>
+
+	<section class="pipeline" data-reveal>
+		<h2 class="section-title">One command, five gates</h2>
+		<ol class="steps">
+			{pipeline.map((step) => (
+				<li class="step">
+					<span class="step-n" aria-hidden="true">{step.n}</span>
+					<div class="step-body">
+						<h3>{step.title}</h3>
+						<p>{step.body}</p>
+					</div>
+				</li>
+			))}
+		</ol>
+	</section>
+
+	<section class="split" data-reveal>
+		<article class="panel">
+			<h2>Silence is a crash</h2>
+			<p>
+				If you cannot see the screen, an app that goes quiet is indistinguishable from one that
+				has died. Every state — every rejection, every error — is spoken.
+			</p>
+		</article>
+		<article class="panel">
+			<h2>Stores nothing</h2>
+			<p>
+				No audio. No transcripts. Retention is opt-in and reversible, and the default keeps
+				nothing at all.
+			</p>
+			<a href="/reference/privacy/">Read the privacy model →</a>
+		</article>
+	</section>
+
+	<section class="closer" data-reveal>
+		<h2>Say it once. It does the rest.</h2>
+		<a class="btn-solid lg" href="/guides/using-echoguide/">Start using EchoGuide<span aria-hidden="true">→</span></a>
+	</section>
+</div>
+
+<script>
+	const reveal = () => {
+		const items = document.querySelectorAll('[data-reveal]');
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			items.forEach((el) => el.classList.add('is-in'));
+			return;
+		}
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						entry.target.classList.add('is-in');
+						io.unobserve(entry.target);
+					}
+				});
+			},
+			{ rootMargin: '-40px' },
+		);
+		items.forEach((el) => io.observe(el));
+	};
+
+	reveal();
+	document.addEventListener('astro:page-load', reveal);
+</script>

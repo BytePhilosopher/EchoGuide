@@ -10,15 +10,11 @@
 	--eg-ember: #ff583d;
 	--eg-ember-strong: #ff3616;
 	--eg-ember-wash: #ff583d1a;
-	--eg-success: #3f9e3d;
 
-	--eg-r-micro: 2px;
 	--eg-r-xs: 4px;
 	--eg-r-sm: 6px;
 	--eg-r-md: 8px;
 	--eg-r-lg: 12px;
-	--eg-r-xl: 18px;
-	--eg-r-2xl: 24px;
 
 	--eg-shadow-card: 0 1px 2px #00000080, inset 0 1px 0 #ffffff0a;
 	--eg-shadow-chip: 0 1px 2px #0006, inset 0 1px 0 #ffffff0f;
@@ -241,7 +237,9 @@ h1, h2, h3, h4 {
 }
 
 header.header {
-	background: var(--eg-bg);
+	background: color-mix(in srgb, var(--eg-bg) 82%, transparent);
+	-webkit-backdrop-filter: saturate(140%) blur(12px);
+	backdrop-filter: saturate(140%) blur(12px);
 	border-bottom: 1px solid var(--sl-color-hairline);
 	box-shadow: none;
 }
@@ -251,9 +249,12 @@ header.header {
 	font-weight: 600;
 	letter-spacing: -0.015em;
 	color: var(--sl-color-white);
+	gap: 0.55rem;
 }
 
-site-search button {
+site-search > button {
+	inline-size: 100%;
+	max-inline-size: 30rem;
 	background: var(--eg-card);
 	border: 1px solid var(--sl-color-hairline);
 	border-radius: var(--eg-r-md);
@@ -262,12 +263,12 @@ site-search button {
 	transition: border-color 160ms ease, background 160ms ease;
 }
 
-site-search button:hover {
+site-search > button:hover {
 	border-color: var(--eg-control);
 	background: var(--eg-muted);
 }
 
-site-search button kbd {
+site-search > button kbd {
 	background: var(--eg-accent-surface);
 	border-radius: var(--eg-r-xs);
 	color: var(--eg-muted-fg);
@@ -433,9 +434,6 @@ starlight-toc > nav > ul > li:first-child {
 
 :root,
 .main-pane,
-.content-panel {
-	--sl-content-width: 818px;
-}
 
 .content-panel .sl-container,
 .sl-markdown-content {
@@ -520,4 +518,131 @@ starlight-toc > nav > ul > li:first-child {
 		display: block;
 		overflow-x: auto;
 	}
+}
+
+.site-title img,
+.site-title svg {
+	inline-size: 1.4rem;
+	block-size: 1.4rem;
+	flex-shrink: 0;
+}
+
+
+@media (min-width: 72rem) {
+	header.header > .header {
+		grid-template-columns:
+			calc(var(--sl-sidebar-width) + 1.5rem)
+			minmax(0, 1fr)
+			auto;
+		gap: 0;
+	}
+}
+
+.theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 9999px;
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-chip);
+}
+
+.theme-toggle [role='radio'] {
+	display: grid;
+	place-items: center;
+	inline-size: 1.75rem;
+	block-size: 1.75rem;
+	padding: 0;
+	border: 0;
+	border-radius: 9999px;
+	background: transparent;
+	color: var(--eg-muted-fg);
+	cursor: pointer;
+	transition: color 140ms ease, background 140ms ease;
+}
+
+.theme-toggle [role='radio']:hover {
+	color: var(--sl-color-gray-1);
+	background: var(--eg-accent-surface);
+}
+
+.theme-toggle [role='radio'][aria-checked='true'] {
+	color: var(--eg-ember);
+	background: var(--eg-ember-wash);
+}
+
+.theme-toggle [role='radio']:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
+
+site-search dialog[open] {
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-float);
+	color: var(--sl-color-gray-2);
+}
+
+site-search dialog::backdrop {
+	background: color-mix(in srgb, #000 62%, transparent);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+}
+
+site-search dialog[open] .dialog-frame {
+	background: var(--eg-card);
+	border-radius: var(--eg-r-lg);
+	padding-block: 0.5rem;
+}
+
+#starlight__search .pagefind-ui__search-input {
+	background: var(--eg-bg);
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-md);
+	color: var(--sl-color-gray-1);
+	font-size: 0.95rem;
+}
+
+#starlight__search .pagefind-ui__search-input::placeholder {
+	color: var(--eg-muted-fg);
+}
+
+#starlight__search .pagefind-ui__search-input:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 1px;
+	border-color: transparent;
+}
+
+#starlight__search .pagefind-ui__result {
+	border-top: 1px solid var(--sl-color-hairline);
+}
+
+#starlight__search .pagefind-ui__result-link {
+	color: var(--sl-color-white);
+	font-weight: 600;
+}
+
+#starlight__search .pagefind-ui__result-excerpt {
+	color: var(--eg-muted-fg);
+	font-size: 0.88rem;
+}
+
+#starlight__search mark {
+	background: var(--eg-ember-wash);
+	color: var(--eg-ember);
+	border-radius: var(--eg-r-xs);
+	padding: 0 0.15em;
+}
+
+#starlight__search .pagefind-ui__message {
+	color: var(--eg-muted-fg);
+	font-size: 0.9rem;
+}
+
+site-search dialog:focus,
+site-search dialog:focus-visible {
+	outline: none;
 }
