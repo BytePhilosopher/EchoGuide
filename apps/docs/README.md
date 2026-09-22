@@ -1,49 +1,47 @@
-# Starlight Starter Kit: Basics
+# @echoguide/docs
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Documentation site for EchoGuide, built with Astro and Starlight.
 
-```
-pnpm create astro@latest -- --template starlight
-```
+## Commands
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Run from the repo root:
 
-## 🚀 Project Structure
-
-Inside of your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+```bash
+npm run start:docs
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+Or from this directory:
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+| Command | Action |
+| --- | --- |
+| `npm run dev` | Start the dev server on `localhost:4321` |
+| `npm run build` | Build the static site to `dist/` |
+| `npm run preview` | Serve the built site locally |
 
-Static assets, like favicons, can be placed in the `public/` directory.
+## Structure
 
-## 🧞 Commands
+```
+src/
+  content/docs/     Pages — each .md/.mdx file becomes a route
+    guides/         Task-oriented pages
+    reference/      Terse, comprehensive pages
+  styles/theme.css  Design tokens and component styling
+public/             Static assets served at the root
+astro.config.mjs    Site config, sidebar, fonts
+```
 
-All commands are run from the root of the project, from a terminal:
+## Theming
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+All colour, radius, shadow, and typography decisions live in `src/styles/theme.css`
+as custom properties. The `--eg-*` tokens define the palette; the `--sl-*` tokens map
+that palette onto Starlight's own variables.
 
-## 👀 Want to learn more?
+Dark is the primary theme. The light palette is a derived counterpart, and both are
+verified against WCAG AA for text and interactive borders. Change a colour in one
+place and it propagates everywhere.
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+## Writing
+
+Pages use Starlight's Markdown and MDX components. Every page needs `title` and
+`description` frontmatter — the description is the meta tag and the search result
+snippet, so write it for someone who has not seen the page.
