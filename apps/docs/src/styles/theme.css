@@ -644,3 +644,9 @@ site-search dialog:focus,
 site-search dialog:focus-visible {
 	outline: none;
 }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+	mix-blend-mode: normal;
+}
