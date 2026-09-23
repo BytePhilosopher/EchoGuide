@@ -36,15 +36,21 @@ All in `dependencies`, never `devDependencies`.
 ## File map
 
 ```
-astro.config.mjs                         title, sidebar, fonts, overrides, mermaid(), react(),
-                                         inline integration tagging diagrams data-pagefind-ignore
+astro.config.mjs                         title, sidebar, fonts, overrides, integrations, customCss order
+src/integrations/
+  ignore-diagrams-in-search.ts           build hook: tags diagram <pre> with data-pagefind-ignore
 src/env.d.ts                         7   PUBLIC_VOXIDE_KEY typing
 src/content.config.ts                7   Starlight docs collection (do not touch)
-src/styles/theme.css               523   design system — all --eg-* and --sl-* tokens
+src/styles/theme.css                     tokens (--eg-*, --sl-*) and base only — load order 1
+src/styles/navigation.css                header, search trigger, menu button, sidebar, TOC, theme toggle
+src/styles/search.css                    Pagefind search dialog
+src/styles/content.css                   typography, tables, asides, layout widths, anchor links
+src/styles/cards.css                     Starlight cards, hero, LinkCard
 src/styles/landing.css             362   homepage only, imported by Landing.astro
 src/styles/diagrams.css                  mermaid SVG theming — all colours from --eg-* tokens
 src/components/Head.astro            7   override: adds <ClientRouter />
-src/components/Footer.astro              override: site footer, DiagramZoom, Assistant (route list excludes 404)
+src/components/Footer.astro              override: site footer (links derived from sidebar groups + SocialIcons),
+                                         DiagramZoom, Assistant (route list excludes 404); footer CSS is scoped here
 src/components/PageTitle.astro           override: eyebrow = current sidebar group label, then default h1
 src/components/DiagramZoom.astro         wraps each diagram with an expand button; native <dialog> viewer
 src/components/assistant/
@@ -72,7 +78,10 @@ public/favicon.svg                   8
 
 ## Design system
 
-Defined once in `src/styles/theme.css`. `--eg-*` is the palette; `--sl-*` maps it onto Starlight.
+Tokens live in `src/styles/theme.css`. `--eg-*` is the palette; `--sl-*` maps it onto Starlight.
+Component rules live in the per-area files listed above; `customCss` order in `astro.config.mjs` is the cascade order.
+Breakpoints use range syntax only: `(width < 50rem)`, `(width >= 50rem)`, `(50rem <= width < 72rem)`, `(width >= 72rem)`.
+Layout constants are tokens: `--eg-toc-width`, `--eg-voice-bar-clearance`, `--sl-menu-button-size`.
 Dark is primary (`:root`); light is a derived counterpart (`:root[data-theme="light"]`).
 
 ```

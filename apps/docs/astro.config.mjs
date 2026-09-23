@@ -3,10 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
 import mermaid from 'astro-mermaid';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-
-const MERMAID_PRE = '<pre class="mermaid">';
+import ignoreDiagramsInSearch from './src/integrations/ignore-diagrams-in-search.ts';
 
 export default defineConfig({
 	integrations: [
@@ -20,30 +17,20 @@ export default defineConfig({
 			},
 		}),
 		react(),
-		{
-			name: 'eg-ignore-diagrams-in-search',
-			hooks: {
-				'astro:build:done': async ({ dir }) => {
-					const root = fileURLToPath(dir);
-					const files = await readdir(root, { recursive: true });
-					const pages = files.filter((file) => file.endsWith('.html'));
-					await Promise.all(
-						pages.map(async (file) => {
-							const path = `${root}/${file}`;
-							const html = await readFile(path, 'utf8');
-							if (!html.includes(MERMAID_PRE)) return;
-							await writeFile(path, html.replaceAll(MERMAID_PRE, '<pre class="mermaid" data-pagefind-ignore>'));
-						}),
-					);
-				},
-			},
-		},
+		ignoreDiagramsInSearch(),
 		starlight({
 			title: 'EchoGuide',
 			description:
 				'Bilingual Amharic and English voice assistant that lets blind and low-vision users drive any Android app by speaking.',
 			logo: { src: './src/assets/logo.svg' },
-			customCss: ['./src/styles/theme.css', './src/styles/diagrams.css'],
+			customCss: [
+				'./src/styles/theme.css',
+				'./src/styles/navigation.css',
+				'./src/styles/search.css',
+				'./src/styles/content.css',
+				'./src/styles/cards.css',
+				'./src/styles/diagrams.css',
+			],
 			components: {
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',

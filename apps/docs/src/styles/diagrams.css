@@ -157,7 +157,7 @@
 	stroke: var(--eg-control) !important;
 }
 
-@media (max-width: 50rem) {
+@media (width < 50rem) {
 	.sl-markdown-content pre.mermaid {
 		padding-inline: 0.75rem;
 	}

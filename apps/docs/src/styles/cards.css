@@ -1,0 +1,112 @@
+.action.primary {
+	background: var(--eg-ember);
+	color: #121212;
+	border-radius: var(--eg-r-md);
+	font-weight: 600;
+	border: 0;
+	box-shadow: var(--eg-shadow-chip);
+	transition: background 150ms ease;
+}
+
+.action.primary:hover {
+	background: var(--eg-ember-strong);
+	color: #121212;
+}
+
+.action.minimal {
+	border-radius: var(--eg-r-md);
+	color: var(--sl-color-gray-2);
+}
+
+.hero {
+	grid-template-columns: 1fr;
+	justify-items: center;
+	text-align: center;
+	gap: 1.5rem;
+}
+
+.hero > .stack {
+	max-width: 46rem;
+	align-items: center;
+	gap: 1.25rem;
+}
+
+.hero .actions {
+	justify-content: center;
+}
+
+.hero .tagline {
+	text-wrap: balance;
+	max-width: 38rem;
+	color: var(--eg-muted-fg);
+}
+
+.card {
+	background: var(--eg-card);
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	box-shadow: var(--eg-shadow-card);
+	transition: border-color 160ms ease;
+}
+
+.card:hover {
+	border-color: var(--eg-control);
+}
+
+.card .icon {
+	color: var(--eg-ember);
+	background: var(--eg-ember-wash);
+	border-radius: var(--eg-r-sm);
+	padding: 0.35rem;
+}
+
+.card .title {
+	font-family: "Funnel Display", var(--sl-font);
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content .sl-link-card {
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	padding: 1.1rem 1.2rem;
+	transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.sl-markdown-content .sl-link-card:hover,
+.sl-markdown-content .sl-link-card:focus-within {
+	border-color: var(--eg-ember);
+	transform: translateY(-2px);
+}
+
+.sl-markdown-content .sl-link-card .title {
+	font-family: "Funnel Display", var(--sl-font);
+	font-size: 1.02rem;
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content .sl-link-card .description {
+	font-size: 0.875rem;
+	line-height: 1.55;
+	color: var(--eg-muted-fg);
+}
+
+.sl-markdown-content .sl-link-card .icon {
+	color: var(--eg-muted-fg);
+	transition: color 160ms ease, transform 160ms ease;
+}
+
+.sl-markdown-content .sl-link-card:hover .icon {
+	color: var(--eg-ember);
+	transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sl-markdown-content .sl-link-card:hover,
+	.sl-markdown-content .sl-link-card:focus-within,
+	.sl-markdown-content .sl-link-card:hover .icon {
+		transform: none;
+	}
+}
