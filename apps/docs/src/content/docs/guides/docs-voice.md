@@ -8,12 +8,12 @@ page, read the section you are on, and switch a code example to another language
 
 ## Using it
 
-The assistant sits at the bottom of every page. Open it and choose how to talk to it:
+The assistant is the microphone button at the bottom of every page.
 
-- **Voice** — speak, and it answers out loud. Your browser asks for microphone access the first time.
-- **Text** — type instead, if you are somewhere you cannot speak.
+- **Press it to start talking.** It turns green while it is listening, and answers out loud. Your browser asks for microphone access the first time.
+- **Press it again to stop.** That ends the conversation and releases the microphone.
 
-Closing the panel releases the microphone.
+It can take a few seconds to appear after a page first loads, while it connects.
 
 **It keeps listening as you move between pages.** Opening a page by voice does not end the
 conversation, so you can ask it to read what just opened.
