@@ -132,5 +132,15 @@ Object storage sits outside the transaction. Deletion enqueues a job, the job re
 objects are gone, and **the user is told deletion is complete only when it succeeds.**
 
 :::note[In the repository]
-The current schema is in `apps/api/src/shared/database/schema.sql`.
+The schema is defined with Drizzle in `apps/api/src/shared/database/schema.ts`. Migrations live in
+`apps/api/drizzle/`, each with a matching rollback in `drizzle/down/`.
+
+- `npm run db:migrate` applies pending migrations.
+- `npm run db:rollback` reverts the latest one.
+- `create_command_events_partition(date)` creates a month's partition, and is safe to call
+  repeatedly. The first migration creates the current month and the next two, plus a default
+  partition that catches rows if a month is ever missing.
+
+Deleting a user cascades through every table in the database. The object-storage job is not built
+yet, because audio retention does not exist yet.
 :::

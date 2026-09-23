@@ -24,6 +24,8 @@ native Kotlin layer — and the accessibility executor lives there, so in practi
 npm install
 docker-compose up -d
 npm run build --workspace=@echoguide/openapi
+cp apps/api/.env.example apps/api/.env
+npm run db:migrate --workspace=@echoguide/api
 ```
 
 Build the OpenAPI package before either app starts. Both the API and the mobile client
