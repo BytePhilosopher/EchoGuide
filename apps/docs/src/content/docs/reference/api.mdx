@@ -1,0 +1,78 @@
+---
+title: API reference
+description: Where the EchoGuide API contract lives, what is generated from it, how the phone behaves on each command status, and where the implementation currently differs.
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+The API contract is one file: `packages/openapi/openapi.yaml`. Every route, request, response and
+error is defined there, and nowhere else.
+
+<LinkCard
+	title="Open the full API reference"
+	href="/api-reference/"
+	description="Every endpoint, schema and error, generated from openapi.yaml on each docs build."
+	data-astro-reload
+/>
+
+The bundled spec itself is at [`/api-reference/openapi.json`](/api-reference/openapi.json) for tools and agents.
+
+## What is generated from it
+
+Nothing below is written by hand. Change the YAML, rebuild, and every consumer follows.
+
+| Output | Tool | Used by |
+| --- | --- | --- |
+| Zod schemas | `@hey-api/openapi-ts` | The API, for runtime validation |
+| TypeScript types | `openapi-typescript` | The API, React Native and the admin portal |
+| Kotlin client | `openapi-generator` | The Android voice pipeline |
+| This site's reference | `redocly` | Readers of these docs |
+
+A breaking change to the contract fails the build of whatever depends on it, instead of reaching
+a user.
+
+## Regenerating
+
+```bash
+npm run build --workspace=@echoguide/openapi
+npm run generate:kotlin --workspace=@echoguide/openapi
+```
+
+The first command lints the YAML, then generates the Zod schemas and TypeScript types and
+compiles the package. The Kotlin client is separate because it needs Java 11 or newer; it is
+written to `packages/openapi/generated/kotlin` with its own Gradle wrapper.
+
+Generated files are not committed. The YAML is the only thing to review.
+
+## Command statuses
+
+`POST /v1/commands` answers with one of four statuses. The schema says which fields come back;
+this is what the phone does with them.
+
+| Status | Meaning | Phone does |
+| --- | --- | --- |
+| `ACCEPTED` | Plan passed validation | Executes it |
+| `CONFIRMATION_REQUIRED` | Plan contains a destructive step | Speaks the step, waits for yes |
+| `REPROMPT` | Transcript failed the confidence gate | Asks again, at most twice |
+| `REJECTED` | Plan failed schema or allowlist validation | Speaks the failure, runs nothing |
+
+Every step in a plan is one of five allowlisted actions, and every step must say whether it is
+destructive. A plan that leaves that out is rejected rather than assumed safe.
+
+## Sessions
+
+Devices register once and receive an opaque session token, bound to the install id. Admin routes
+use a separate credential, and each one declares the permission it needs — `users.read` or
+`users.suspend` — in the contract. See [Security](/architecture/security/#authentication).
+
+## Where the code differs today
+
+The handlers in `apps/api` are early implementations and do not yet meet the whole contract.
+
+:::caution[Known drift]
+- **`POST /v1/commands`** transcribes every request as `am-ET`, ignoring `language`.
+- **`POST /v1/commands`** omits `command_id` on `REPROMPT` and `REJECTED`, and falls back to a non-UUID `cmd-<timestamp>` id.
+- **The confidence gate** checks `avg_logprob` in the wrong direction, so every command currently resolves to `REPROMPT`. Behind it, **the planner adapter** returns a placeholder plan that would also fail `ActionPlan`.
+:::
+
+A request example in Kotlin and TypeScript is on [Voice commands](/guides/voice-commands/#sending-a-command).

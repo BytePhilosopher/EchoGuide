@@ -1,0 +1,22 @@
+---
+title: This page does not exist
+description: The page you asked for is not part of the EchoGuide documentation.
+template: splash
+editUrl: false
+lastUpdated: false
+prev: false
+next: false
+pagefind: false
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+The address may be mistyped, or the page may have moved. Search with **Ctrl K**, or start from
+one of these.
+
+<CardGrid>
+	<LinkCard title="Using EchoGuide" href="/guides/using-echoguide/" description="Turn it on, speak to it, and what it says back." />
+	<LinkCard title="Developer quickstart" href="/guides/quickstart/" description="Run the API and the mobile client locally." />
+	<LinkCard title="Architecture" href="/architecture/overview/" description="How the whole system fits together." />
+	<LinkCard title="API reference" href="/reference/api/" description="The /v1/commands contract." />
+</CardGrid>

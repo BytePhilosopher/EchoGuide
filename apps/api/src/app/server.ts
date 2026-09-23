@@ -14,14 +14,12 @@ const port = process.env.PORT || 4000;
 
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Allows raw PCM audio buffer base64 payloads
+app.use(express.json({ limit: '10mb' })); // base64 PCM audio buffers exceed the 100kb default
 
-// Health check endpoint (§3 Probe target)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'echoguide-api-monolith' });
 });
 
-// Domain Monolith Modules (§8.1)
 app.use(authModule);
 app.use(usersModule);
 app.use(commandsModule);
@@ -30,5 +28,5 @@ app.use(telemetryModule);
 app.use(adminModule);
 
 app.listen(port, () => {
-  console.log(`[EchoGuide Backend API] Modular Monolith running on port ${port}`);
+  console.log(JSON.stringify({ event: 'api.started', port }));
 });

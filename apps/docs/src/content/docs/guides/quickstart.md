@@ -24,6 +24,8 @@ native Kotlin layer — and the accessibility executor lives there, so in practi
 npm install
 docker-compose up -d
 npm run build --workspace=@echoguide/openapi
+cp apps/api/.env.example apps/api/.env
+npm run db:migrate --workspace=@echoguide/api
 ```
 
 Build the OpenAPI package before either app starts. Both the API and the mobile client
@@ -61,4 +63,5 @@ missing.
 ## Next
 
 - [Voice commands](/guides/voice-commands/) — what EchoGuide accepts and how it decides
-- [Architecture](/reference/architecture/) — why the executor has to be native Kotlin
+- [Architecture overview](/architecture/overview/) — why the executor has to be native Kotlin
+- [API reference](/reference/api/) — the full `/v1/commands` contract

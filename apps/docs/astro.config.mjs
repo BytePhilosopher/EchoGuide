@@ -2,20 +2,40 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
+import mermaid from 'astro-mermaid';
+import ignoreDiagramsInSearch from './src/integrations/ignore-diagrams-in-search.ts';
+import { SIDEBAR, SITE_DESCRIPTION, SITE_TITLE } from './src/site.ts';
 
 export default defineConfig({
 	integrations: [
+		mermaid({
+			autoTheme: true,
+			enableLog: false,
+			mermaidConfig: {
+				fontFamily: '"Funnel Sans", system-ui, sans-serif',
+				flowchart: { curve: 'basis', padding: 14 },
+				sequence: { mirrorActors: false },
+			},
+		}),
 		react(),
+		ignoreDiagramsInSearch(),
 		starlight({
-			title: 'EchoGuide',
-			description:
-				'Bilingual Amharic and English voice assistant that lets blind and low-vision users drive any Android app by speaking.',
+			title: SITE_TITLE,
+			description: SITE_DESCRIPTION,
 			logo: { src: './src/assets/logo.svg' },
-			customCss: ['./src/styles/theme.css'],
+			customCss: [
+				'./src/styles/theme.css',
+				'./src/styles/navigation.css',
+				'./src/styles/search.css',
+				'./src/styles/content.css',
+				'./src/styles/cards.css',
+				'./src/styles/diagrams.css',
+			],
 			components: {
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
 				ThemeSelect: './src/components/ThemeSelect.astro',
+				PageTitle: './src/components/PageTitle.astro',
 			},
 			head: [
 				{
@@ -50,23 +70,7 @@ export default defineConfig({
 					'https://github.com/dawitlabs/EchoGuide/edit/main/apps/docs/',
 			},
 			lastUpdated: true,
-			sidebar: [
-				{
-					label: 'Using EchoGuide',
-					items: [
-						{ label: 'Using EchoGuide', slug: 'guides/using-echoguide' },
-						{ label: 'Privacy and data', slug: 'reference/privacy' },
-					],
-				},
-				{
-					label: 'Building on EchoGuide',
-					items: [
-						{ label: 'Developer quickstart', slug: 'guides/quickstart' },
-						{ label: 'Voice commands', slug: 'guides/voice-commands' },
-						{ label: 'Architecture', slug: 'reference/architecture' },
-					],
-				},
-			],
+			sidebar: SIDEBAR,
 		}),
 	],
 });

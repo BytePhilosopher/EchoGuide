@@ -6,23 +6,28 @@
   "scripts": {
     "dev": "tsx watch src/app/server.ts",
     "build": "tsc",
-    "start": "node dist/app/server.js"
+    "start": "node dist/app/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:rollback": "tsx src/shared/database/rollback.ts"
   },
   "dependencies": {
     "@echoguide/openapi": "*",
-    "express": "^4.19.2",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
     "dotenv": "^16.4.5",
-    "pg": "^8.11.5",
+    "drizzle-orm": "^0.45.3",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
+    "pg": "^8.11.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.12.7",
     "@types/pg": "^8.11.5",
+    "drizzle-kit": "^0.31.11",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5"
   }

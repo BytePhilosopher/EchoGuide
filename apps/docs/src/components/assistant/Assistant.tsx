@@ -27,7 +27,8 @@ function createClient(publicKey: string, routes: DocsRoute[]): VoxideClient {
 			title: 'EchoGuide docs',
 			subtitle: 'Ask, search, or navigate by voice',
 			accentColor: '#ff583d',
-			theme: 'dark',
+			theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
+			position: 'bottom-right',
 			launcherMode: 'voice-bar',
 			showBranding: false,
 		},
@@ -44,7 +45,7 @@ function createClient(publicKey: string, routes: DocsRoute[]): VoxideClient {
 		},
 		navigateTo: {
 			description:
-				'Open a documentation page by name, for example "quickstart", "architecture", or "privacy".',
+				'Open a documentation page by name, for example "quickstart", "security", "command pipeline", "API reference", or "privacy".',
 			params: {
 				section: {
 					type: 'string',

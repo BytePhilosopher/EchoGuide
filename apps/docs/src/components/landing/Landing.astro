@@ -1,5 +1,6 @@
 ---
 import '../../styles/landing.css';
+import '../../styles/landing-sections.css';
 
 const ASCII_CHARS = ' ·:-=+*#%@';
 const ASCII_COLS = 210;
@@ -24,11 +25,11 @@ const stats = [
 ];
 
 const pipeline = [
-	{ n: '፩', title: 'Capture', body: 'Wake word and voice activity detection run on the phone. Audio under 0.4 seconds never leaves it.' },
-	{ n: '፪', title: 'Transcribe', body: 'Addis AI speech models, purpose-built for Amharic rather than retrofitted from English.' },
-	{ n: '፫', title: 'Gate', body: 'Three signals decide whether the transcript is trustworthy. A bad guess is worse than asking twice.' },
-	{ n: '፬', title: 'Plan', body: 'The model proposes a sequence of interface actions against what is currently on screen.' },
-	{ n: '፭', title: 'Execute', body: 'A native Kotlin accessibility service performs the taps. Every state is announced aloud.' },
+	{ n: '፩', title: 'Capture', href: '/architecture/command-pipeline/#capture-parameters', body: 'Wake word and voice activity detection run on the phone. Audio under 0.4 seconds never leaves it.' },
+	{ n: '፪', title: 'Transcribe', href: '/architecture/overview/#the-voice-platform', body: 'Addis AI speech models, purpose-built for Amharic rather than retrofitted from English.' },
+	{ n: '፫', title: 'Gate', href: '/architecture/command-pipeline/#the-confidence-gate', body: 'Three signals decide whether the transcript is trustworthy. A bad guess is worse than asking twice.' },
+	{ n: '፬', title: 'Plan', href: '/architecture/security/#plan-validation', body: 'The model proposes a sequence of interface actions against what is currently on screen.' },
+	{ n: '፭', title: 'Execute', href: '/architecture/mobile-client/', body: 'A native Kotlin accessibility service performs the taps. Every state is announced aloud.' },
 ];
 
 const exchange = [
@@ -50,6 +51,12 @@ const paths = [
 		body: 'Run the stack locally, read the command contract, and see how the pipeline is put together.',
 		href: '/guides/quickstart/',
 		cta: 'Developer quickstart',
+	},
+	{
+		title: 'How it is built',
+		body: 'The architecture end to end — the pipeline, the security model, the failure table, and the decisions behind them.',
+		href: '/architecture/overview/',
+		cta: 'Read the architecture',
 	},
 ];
 ---
@@ -118,7 +125,7 @@ const paths = [
 				<li class="step">
 					<span class="step-n" aria-hidden="true">{step.n}</span>
 					<div class="step-body">
-						<h3>{step.title}</h3>
+						<h3><a href={step.href}>{step.title}</a></h3>
 						<p>{step.body}</p>
 					</div>
 				</li>
@@ -133,6 +140,7 @@ const paths = [
 				If you cannot see the screen, an app that goes quiet is indistinguishable from one that
 				has died. Every state — every rejection, every error — is spoken.
 			</p>
+			<a href="/architecture/failure/">Read the failure table →</a>
 		</article>
 		<article class="panel">
 			<h2>Stores nothing</h2>

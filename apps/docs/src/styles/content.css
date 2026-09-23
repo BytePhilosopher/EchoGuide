@@ -1,0 +1,240 @@
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.hero h1,
+h1, h2, h3, h4 {
+	font-family: "Funnel Display", var(--sl-font);
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content h1, .hero h1 {
+	font-size: 2.25rem;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: -0.025em;
+}
+
+.sl-markdown-content h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.015em;
+}
+
+.sl-markdown-content h3 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.sl-heading-wrapper.level-h2 {
+	display: block;
+	width: 100%;
+	margin-top: 2.75rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid var(--sl-color-hairline);
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h2 > h2 {
+	margin-top: 0;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+	color: var(--eg-ember);
+	text-decoration-color: color-mix(in srgb, var(--eg-ember) 40%, transparent);
+	text-underline-offset: 0.22em;
+	text-decoration-thickness: 1px;
+	transition: text-decoration-color 150ms ease;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+	text-decoration-color: currentColor;
+}
+
+.sl-markdown-content :not(pre) > code:not(:where(.not-content *)) {
+	background: var(--eg-muted);
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-xs);
+	padding: 0.12em 0.4em;
+	font-size: 0.86em;
+	color: var(--sl-color-gray-1);
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)) {
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-md);
+	box-shadow: var(--eg-shadow-card);
+}
+
+.sl-markdown-content table:not(:where(.not-content *)) {
+	display: table;
+	width: 100%;
+	table-layout: auto;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-md);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+	font-size: 0.875rem;
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+	background: var(--eg-card);
+	color: var(--sl-color-gray-3);
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	font-weight: 500;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-align: start;
+}
+
+.sl-markdown-content th:not(:where(.not-content *)),
+.sl-markdown-content td:not(:where(.not-content *)) {
+	border-bottom: 1px solid var(--sl-color-hairline);
+	padding: 0.7rem 0.9rem;
+	line-height: 1.55;
+}
+
+.sl-markdown-content tr:last-child td:not(:where(.not-content *)) {
+	border-bottom: 0;
+}
+
+.sl-markdown-content .starlight-aside {
+	border: 1px solid var(--sl-color-hairline);
+	border-inline-start: 2px solid var(--eg-ember);
+	border-radius: var(--eg-r-md);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	padding: 1rem 1.1rem;
+}
+
+.sl-markdown-content .starlight-aside__title {
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--eg-ember);
+}
+
+.sl-markdown-content :is(.starlight-aside__title, th) code {
+	font-size: inherit;
+}
+
+.sl-markdown-content > p:first-child {
+	font-size: 1.125rem;
+	line-height: 1.7;
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content {
+	counter-reset: eg-section;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *)) {
+	counter-increment: eg-section;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *))::before {
+	content: counter(eg-section, decimal-leading-zero) / "";
+	margin-inline-end: 0.75rem;
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	vertical-align: 0.35em;
+	color: var(--eg-ember);
+}
+
+.sl-markdown-content blockquote:not(:where(.not-content *)) {
+	border-inline-start: 2px solid var(--eg-ember);
+	color: var(--sl-color-gray-2);
+	font-style: normal;
+}
+
+.sl-markdown-content :is(td, th) code {
+	overflow-wrap: anywhere;
+}
+
+.main-pane,
+.content-panel .sl-container,
+.sl-markdown-content {
+	max-width: 818px;
+}
+
+.content-panel {
+	padding: 2rem 3rem 4rem;
+}
+
+.content-panel > .sl-container {
+	margin-inline: auto;
+}
+
+.content-panel + .content-panel {
+	border-top: 0;
+}
+
+.content-panel:first-of-type {
+	padding-bottom: 0;
+}
+
+.main-pane {
+	padding-block-end: var(--eg-voice-bar-clearance);
+}
+
+.sl-anchor-link {
+	opacity: 0;
+	margin-inline-start: 0.4rem;
+	color: var(--eg-muted-fg);
+	transition: opacity 140ms ease, color 140ms ease;
+}
+
+.sl-heading-wrapper:hover .sl-anchor-link,
+.sl-anchor-link:focus-visible {
+	opacity: 1;
+}
+
+.sl-anchor-link:hover {
+	color: var(--eg-ember);
+}
+
+@media (hover: none) {
+	.sl-anchor-link {
+		display: none;
+	}
+}
+
+.sl-anchor-link .sl-anchor-icon {
+	width: 0.85em;
+	height: 0.85em;
+}
+
+@media (width < 50rem) {
+	.content-panel {
+		padding-inline: 1.25rem;
+	}
+
+	.sl-markdown-content table:not(:where(.not-content *)) {
+		display: block;
+		overflow-x: auto;
+		background:
+			linear-gradient(to right, var(--eg-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+			linear-gradient(to left, var(--eg-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--eg-scroll-shadow), transparent) left / 1.1rem 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--eg-scroll-shadow), transparent) right / 1.1rem 100% no-repeat scroll;
+		background-color: var(--eg-bg);
+	}
+}
+
+@media (width >= 72rem) {
+	.right-sidebar,
+	.right-sidebar-container {
+		width: var(--eg-toc-width);
+	}
+
+	.main-pane {
+		--sl-mobile-toc-height: 0rem;
+		width: calc(100% - var(--eg-toc-width));
+	}
+}

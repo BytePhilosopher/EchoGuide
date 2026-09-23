@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.25.0",
+    "generators": {
+      "kotlin": {
+        "generatorName": "kotlin",
+        "inputSpec": "openapi.yaml",
+        "output": "generated/kotlin",
+        "packageName": "com.echoguide.network.generated",
+        "additionalProperties": {
+          "library": "jvm-okhttp4",
+          "serializationLibrary": "kotlinx_serialization",
+          "dateLibrary": "string",
+          "enumPropertyNaming": "UPPERCASE",
+          "omitGradleWrapper": false
+        }
+      }
+    }
+  }
+}

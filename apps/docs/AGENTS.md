@@ -7,7 +7,7 @@ Read this instead of opening files. Everything below is verified against the run
 
 1. **Scope is `apps/docs` only.** Never edit `packages/*`, `docs/adr/`, or other apps. Adding an npm dep updates the root `package-lock.json` — that is the one permitted side effect.
 2. **No comments in source.** The only exception is `// @ts-check` in `astro.config.mjs` (a directive, not a comment).
-3. **Never invent product facts.** Numbers and behaviour come from the architecture doc and `packages/openapi` schemas. Do not write example voice phrases — no canonical list exists.
+3. **Never invent product facts.** Numbers and behaviour come from the architecture doc and `packages/openapi/openapi.yaml`. Do not write example voice phrases — no canonical list exists.
 4. **Verify in a browser before claiming done.** `astro build` passing proves nothing about layout or CSS.
 
 ## Commands
@@ -28,6 +28,7 @@ Always ask before binding a port.
 astro ^7.2.10          @astrojs/starlight ^0.42.2
 @astrojs/react ^6.0.6  react ^19.3.0  react-dom ^19.3.0
 @voxide/react ^0.8.0   sharp ^0.35.3  cookie ^2.0.1
+astro-mermaid ^2.1.0   mermaid ^11
 ```
 
 All in `dependencies`, never `devDependencies`.
@@ -35,13 +36,27 @@ All in `dependencies`, never `devDependencies`.
 ## File map
 
 ```
-astro.config.mjs                    69   title, sidebar, fonts, overrides, react()
+astro.config.mjs                         title, sidebar, fonts, overrides, integrations, customCss order
+src/site.ts                              SITE_TITLE, SITE_DESCRIPTION, SIDEBAR — single source for config + llms.txt
+src/lib/page-markdown.ts                 toMarkdown(entry), markdownPath(id)
+src/pages/llms.txt.ts                    /llms.txt, grouped in sidebar order, links to .md twins
+src/pages/[...slug].md.ts                raw Markdown twin of every docs page (MDX imports stripped)
+src/integrations/
+  ignore-diagrams-in-search.ts           build hook: tags diagram <pre> with data-pagefind-ignore
 src/env.d.ts                         7   PUBLIC_VOXIDE_KEY typing
 src/content.config.ts                7   Starlight docs collection (do not touch)
-src/styles/theme.css               523   design system — all --eg-* and --sl-* tokens
+src/styles/theme.css                     tokens (--eg-*, --sl-*) and base only — load order 1
+src/styles/navigation.css                header, search trigger, menu button, sidebar, TOC, theme toggle
+src/styles/search.css                    Pagefind search dialog
+src/styles/content.css                   typography, tables, asides, layout widths, anchor links
+src/styles/cards.css                     Starlight cards, hero, LinkCard
 src/styles/landing.css             362   homepage only, imported by Landing.astro
+src/styles/diagrams.css                  mermaid SVG theming — all colours from --eg-* tokens
 src/components/Head.astro            7   override: adds <ClientRouter />
-src/components/Footer.astro         17   override: mounts Assistant, builds route list
+src/components/Footer.astro              override: site footer (links derived from sidebar groups + SocialIcons),
+                                         DiagramZoom, Assistant (route list excludes 404); footer CSS is scoped here
+src/components/PageTitle.astro           override: eyebrow (sidebar group) + Copy page / View as Markdown, then h1
+src/components/DiagramZoom.astro         wraps each diagram in <figure> + caption bar (title, expand); <dialog> viewer, its CSS scoped here
 src/components/assistant/
   Assistant.tsx                    111   VoxideClient + capability registration
   capabilities.ts                  130   the four handlers + fuzzy matcher
@@ -49,18 +64,32 @@ src/components/landing/
   Landing.astro                    123   homepage sections + ASCII field generator
 src/content/docs/
   index.mdx                         13   splash, renders <Landing />
+  404.mdx                               custom 404 (splash, LinkCards, pagefind: false)
   guides/using-echoguide.md         94   END USER — plain language, no monorepo
   guides/quickstart.md              64   developers — local stack
-  guides/voice-commands.mdx        124   has <Tabs> — the only showExample target
-  reference/architecture.md         65
+  guides/what-you-hear.md               END USER — every spoken failure line, plain language
+  guides/docs-voice.md                  END USER + dev — the Voxide assistant on this site
+  guides/voice-commands.mdx        124   has <Tabs> — showExample target
+  reference/api.mdx                     /v1/commands contract, <Tabs> (TypeScript/YAML), drift list
   reference/privacy.md              49
+  architecture/*.md(x)                  13 pages (overview.mdx ends in a LinkCard grid), one per section of the architecture doc
+                                        (overview, mobile-client, command-pipeline, performance,
+                                        backend, data, security, failure, observability,
+                                        other-clients, testing, evolution, decisions)
+public/api-reference/index.html          static Redoc page (pinned v2.5.4 + SRI), renders openapi.json
+public/api-reference/openapi.json        GENERATED by `npm run reference` (prebuild/predev) — gitignored
 public/favicon.svg                   8
 .env.example                         1
 ```
 
 ## Design system
 
-Defined once in `src/styles/theme.css`. `--eg-*` is the palette; `--sl-*` maps it onto Starlight.
+Tokens live in `src/styles/theme.css`. `--eg-*` is the palette; `--sl-*` maps it onto Starlight.
+Component rules live in the per-area files listed above; `customCss` order in `astro.config.mjs` is the cascade order.
+Breakpoints use range syntax only: `(width < 50rem)`, `(width >= 50rem)`, `(50rem <= width < 72rem)`, `(width >= 72rem)`.
+Layout constants are tokens: `--eg-toc-width`, `--eg-voice-bar-clearance`, `--sl-menu-button-size`.
+Type/effect tokens: `--eg-text-label` (every mono uppercase label), `--eg-scroll-shadow` (edge shadow on horizontally scrolling tables/diagrams).
+Content pages: first paragraph is the lede (1.125rem); h2s get a mono `01` counter via `::before` with empty alt text (`/ ""`) so screen readers skip it; table headers use the label style; heading anchor links are hidden on `(hover: none)`.
 Dark is primary (`:root`); light is a derived counterpart (`:root[data-theme="light"]`).
 
 ```
@@ -148,8 +177,9 @@ deterministic sine/cosine interference over a `' ·:-=+*#%@'` density ramp, 210�
 
 `.mega` uses `-webkit-text-stroke` for the outlined second line.
 
-Sections in order: hero → stats (lead stat is 2x the others) → spoken exchange → two paths →
-five gates (connected by a rail) → two panels → closer. There are no tabs on the homepage.
+Sections in order: hero → stats (lead stat is 2x the others) → spoken exchange → three paths
+(using, building, architecture) → five gates, each linking to its architecture page → two panels → closer.
+`.stats` uses margin, not padding, for its gutter — padding shows the hairline background as grey flanks. There are no tabs on the homepage.
 
 ## Accessibility — non-negotiable
 
@@ -174,7 +204,38 @@ contrast                    AA for text, 3:1 for interactive borders
 Check `document.documentElement.scrollWidth === clientWidth` rather than eyeballing screenshots —
 overflow is easy to miss visually.
 
+## Diagrams
+
+Mermaid fences render client-side via `astro-mermaid` (listed **before** `starlight`).
+Every diagram carries `accTitle` + `accDescr` — screen readers get the description, not the SVG.
+Keep that for any new diagram.
+
+- Colours come only from `diagrams.css`. Node roles via `:::core` (ember), `:::ext` (dashed),
+  `:::person` (stadium), `:::danger` (dashed ember). Do not add `classDef` with hex.
+- Selectors must beat `pre.mermaid svg g.node rect.basic` — use `g.node.<class>`, not `.node.<class>`.
+- Don't use `autonumber` in sequence diagrams — the numbered circles collide with self-message labels.
+- Under 50rem the SVG gets `min-width: 34rem` and the frame scrolls; do not centre with flex
+  (overflowing flex-centred content clips on the left).
+- The card frame is on `figure.eg-diagram`, not the `<pre>`: astro-mermaid injects `pre.mermaid[data-processed]` styles that would otherwise override it.
+- `DiagramZoom` clones the rendered SVG into `.eg-zoom-body`, so theming selectors are written as
+  `:is(pre.mermaid, .eg-zoom-body) svg …`. Keep that form for new diagram rules.
+- Source text is excluded from Pagefind by the inline build hook; without it, search excerpts
+  show raw `flowchart TD accTitle:` text.
+
+## API reference
+
+The contract is `packages/openapi/openapi.yaml`. `npm run reference` bundles it to
+`public/api-reference/openapi.json`; it runs automatically before `dev` and `build`.
+
+Do not switch to `redocly build-docs`: its pre-rendered HTML hydrates with React errors #418/#423 in
+the browser. The static page renders client-side from the JSON and has no mismatch.
+`reference/api.mdx` must not copy schemas or field tables from the YAML — link to `/api-reference/`.
+The LinkCard carries `data-astro-reload` so ClientRouter does a full load into the non-Astro page.
+
 ## Known open items
 
 - `site` is unset in `astro.config.mjs`, so `@astrojs/sitemap` skips every build. Needs the deploy URL.
-- `voice-commands.mdx` documents `avg_logprob` as "at most -1.0", matching `ConfidenceGateSchema`. The architecture doc §6.2 says below -1.0 means *guessing*, so the schema's `.max(-1.0)` is inverted. The schema is out of scope here; if it is ever fixed, update that line too.
+- `reference/api.mdx` lists drift between Zod, `openapi.yaml` and the handler. Update it when
+  `packages/openapi` or `commands.module.ts` change.
+- The Voxide widget takes its theme from `data-theme` at session start and is pinned `bottom-right` in code, which overrides the dashboard (Voxide logs a console warning about it). Toggling the site theme mid-session does not restyle the widget until reload.
+- `voice-commands.mdx` documents `avg_logprob` as "at most -1.0", matching `ConfidenceGateSchema` (now in `apps/api/src/modules/commands/confidence-gate.ts`). The architecture doc §6.2 says below -1.0 means *guessing*, so the schema's `.max(-1.0)` is inverted. The schema is out of scope here; if it is ever fixed, update that line too.

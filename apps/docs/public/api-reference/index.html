@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>EchoGuide API reference</title>
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<style>
+			body {
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="redoc"></div>
+		<script
+			src="https://cdn.redocly.com/redoc/v2.5.4/bundles/redoc.standalone.js"
+			integrity="sha384-w447zOpYfw/1Tv/5AK9NfHTlQIqE3RVR6KY62jCyy9zNDgO64cMwGGP1Fj0zJVf5"
+			crossorigin="anonymous"
+		></script>
+		<script>
+			Redoc.init(
+				'/api-reference/openapi.json',
+				{ theme: { colors: { primary: { main: '#c33a22' } } } },
+				document.getElementById('redoc'),
+			);
+		</script>
+	</body>
+</html>

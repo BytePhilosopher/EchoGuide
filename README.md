@@ -116,6 +116,9 @@ docker-compose up -d
 # Run shared OpenAPI codegen
 npm run build --workspace=@echoguide/openapi
 
+# Create the database schema (copy apps/api/.env.example to apps/api/.env first)
+npm run db:migrate --workspace=@echoguide/api
+
 # Start API Backend Server in development mode
 npm run dev --workspace=@echoguide/api
 

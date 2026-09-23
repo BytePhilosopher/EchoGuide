@@ -1,11 +1,7 @@
-/**
- * Section 1 & Section 8.2: Addis AI Provider Adapter
- * Implements OpenAI-compatible endpoints for Addis AI platform.
- * Provider services:
- * 1. Speech-to-Text: Amharic & English STT (3% WER on Amharic)
- * 2. Action Planning LLM: Addis-፩-አሌፍ model
- * 3. Text-to-Speech: Amharic natural voice synthesis
- */
+import type { components } from '@echoguide/openapi';
+
+type ScreenContext = components['schemas']['ScreenContext'];
+
 export interface AddisSTTResponse {
   text: string;
   confidence: number;
@@ -23,7 +19,6 @@ export class AddisAIAdapter {
   }
 
   async transcribeAudio(audioBuffer: Buffer, language: string): Promise<AddisSTTResponse> {
-    // OpenAI-compatible /v1/audio/transcriptions endpoint wrapper
     return {
       text: "በስልኬ ላይ መልእክት ላክ",
       confidence: 0.96,
@@ -33,8 +28,7 @@ export class AddisAIAdapter {
     };
   }
 
-  async planActionSequence(transcript: string, screenContext: any): Promise<any> {
-    // OpenAI-compatible /v1/chat/completions endpoint using Addis-፩-አሌፍ model
+  async planActionSequence(transcript: string, screenContext: ScreenContext): Promise<unknown> {
     return {
       model: "Addis-፩-አሌፍ",
       steps: [

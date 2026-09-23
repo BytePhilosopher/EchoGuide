@@ -1,0 +1,250 @@
+.sl-markdown-content pre.mermaid {
+	display: block;
+	margin-block: 1.75rem;
+	padding: 1.5rem 1rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	overflow-x: auto;
+	font-family: "Funnel Sans", var(--sl-font);
+	white-space: pre;
+	color: transparent;
+}
+
+.sl-markdown-content pre.mermaid:not([data-processed]) {
+	min-height: 14rem;
+	animation: eg-diagram-pulse 1.6s ease-in-out infinite;
+}
+
+.sl-markdown-content pre.mermaid[data-processed] {
+	min-height: 0;
+	color: var(--eg-fg);
+	white-space: normal;
+}
+
+.sl-markdown-content .eg-diagram {
+	margin-block: 1.75rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	overflow: hidden;
+}
+
+.sl-markdown-content .eg-diagram pre.mermaid,
+.sl-markdown-content .eg-diagram pre.mermaid[data-processed] {
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.eg-diagram-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.5rem 0.5rem 0.5rem 1rem;
+	border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+.eg-diagram-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--eg-muted-fg);
+}
+
+@keyframes eg-diagram-pulse {
+	50% {
+		background: var(--eg-muted);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sl-markdown-content pre.mermaid:not([data-processed]) {
+		animation: none;
+	}
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg {
+	display: block;
+	margin-inline: auto;
+	max-width: 100%;
+	height: auto;
+	font-family: "Funnel Sans", var(--sl-font) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(text, tspan, .nodeLabel, .edgeLabel, .label, span, p) {
+	fill: var(--eg-fg) !important;
+	color: var(--eg-fg) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .node :is(rect, circle, ellipse, polygon, path),
+:is(pre.mermaid, .eg-zoom-body) svg :is(.actor, rect.actor, .labelBox, .note, .er.entityBox, .er.attributeBoxOdd, .er.attributeBoxEven),
+:is(pre.mermaid, .eg-zoom-body) svg .stateGroup rect,
+:is(pre.mermaid, .eg-zoom-body) svg g.node rect.basic,
+:is(pre.mermaid, .eg-zoom-body) svg .entityBox,
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-odd path,
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-even path {
+	fill: var(--eg-muted) !important;
+	stroke: var(--eg-control) !important;
+	stroke-width: 1px !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-odd path {
+	fill: var(--eg-card) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .cluster rect {
+	fill: transparent !important;
+	stroke: var(--eg-control) !important;
+	stroke-dasharray: 4 4;
+	rx: 8px;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .cluster-label :is(span, p, text) {
+	fill: var(--eg-muted-fg) !important;
+	color: var(--eg-muted-fg) !important;
+	font-size: 0.78rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(.flowchart-link, .edgePath .path, .transition, .relationshipLine, .messageLine0, .messageLine1, .loopLine, .actor-line) {
+	stroke: var(--eg-muted-fg) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(marker path, .arrowheadPath, .arrowMarkerPath, #arrowhead path, .marker) {
+	fill: var(--eg-muted-fg) !important;
+	stroke: var(--eg-muted-fg) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
+	background-color: var(--eg-card) !important;
+	fill: var(--eg-card) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .edgeLabel :is(span, p) {
+	color: var(--eg-muted-fg) !important;
+	font-size: 0.82rem;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg g.node.core :is(rect, circle, polygon, path) {
+	fill: var(--eg-ember-wash) !important;
+	stroke: var(--eg-ember) !important;
+	stroke-width: 1.5px !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg g.node.ext :is(rect, circle, polygon, path) {
+	fill: transparent !important;
+	stroke-dasharray: 4 3;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg g.node.person :is(rect, circle, polygon, path) {
+	fill: var(--eg-accent-surface) !important;
+	stroke: var(--eg-fg) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg g.node.danger :is(rect, circle, polygon, path) {
+	stroke: var(--eg-ember) !important;
+	stroke-dasharray: 3 3;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg rect.background {
+	fill: transparent !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(.axis-line, .axisl-line, .ticks) :is(path, line) {
+	stroke: var(--eg-control) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg [class^="bar-plot"] rect {
+	fill: var(--eg-ember-wash) !important;
+	stroke: var(--eg-ember) !important;
+	stroke-width: 1.5px;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .quadrant rect {
+	fill: var(--eg-muted) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .border line {
+	stroke: var(--eg-control) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .data-point circle {
+	fill: var(--eg-ember) !important;
+	stroke: none !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .timeline-node .node-bkg {
+	fill: var(--eg-muted) !important;
+	stroke: var(--eg-control) !important;
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg :is(.lineWrapper line, .timeline-node line) {
+	stroke: var(--eg-control) !important;
+}
+
+@media (width < 50rem) {
+	.sl-markdown-content pre.mermaid {
+		padding-inline: 0.75rem;
+	}
+
+	:is(pre.mermaid, .eg-zoom-body) svg {
+		min-width: 34rem;
+	}
+
+	.sl-markdown-content .eg-diagram pre.mermaid[data-processed] {
+		background:
+			linear-gradient(to right, var(--eg-card) 30%, transparent) left / 2.5rem 100% no-repeat local,
+			linear-gradient(to left, var(--eg-card) 30%, transparent) right / 2.5rem 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--eg-scroll-shadow), transparent) left / 1.1rem 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--eg-scroll-shadow), transparent) right / 1.1rem 100% no-repeat scroll;
+		background-color: var(--eg-card);
+	}
+}
+
+:is(pre.mermaid, .eg-zoom-body) svg .edgeLabel :is(p, span, div) {
+	background-color: var(--eg-card) !important;
+}
+
+.eg-diagram pre.mermaid[data-processed] svg {
+	cursor: zoom-in;
+}
+
+.eg-diagram-expand {
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	border: 1px solid var(--eg-control);
+	border-radius: var(--eg-r-md);
+	background: var(--eg-card);
+	color: var(--eg-muted-fg);
+	cursor: pointer;
+	transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.eg-diagram-expand:hover {
+	color: var(--eg-ember);
+	border-color: var(--eg-ember);
+}
+
+.eg-diagram-expand:active {
+	background: var(--eg-ember-wash);
+}
+
+.eg-diagram-expand:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
