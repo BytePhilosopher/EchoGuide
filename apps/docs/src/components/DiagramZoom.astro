@@ -49,12 +49,12 @@
 		const pre = figure.querySelector<HTMLElement>('pre.mermaid');
 		const svg = pre?.querySelector('svg');
 		const dialog = document.querySelector<HTMLDialogElement>('dialog.eg-zoom');
-		if (!pre || !svg || !dialog) return;
-		const copy = svg.cloneNode(true);
-		if (!(copy instanceof SVGSVGElement)) return;
-		copy.style.removeProperty('max-width');
-		copy.removeAttribute('width');
-		dialog.querySelector('.eg-zoom-body')?.replaceChildren(copy);
+		const body = dialog?.querySelector('.eg-zoom-body');
+		if (!pre || !svg || !dialog || !body) return;
+		body.replaceChildren(svg.cloneNode(true));
+		const copy = body.querySelector('svg');
+		copy?.style.removeProperty('max-width');
+		copy?.removeAttribute('width');
 		const title = dialog.querySelector('.eg-zoom-title');
 		if (title) title.textContent = diagramTitle(pre);
 		dialog.showModal();

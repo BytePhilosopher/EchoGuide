@@ -82,8 +82,8 @@ const options = [
 			onThemeChange(loadTheme());
 
 			this.addEventListener('click', (event) => {
-				const target = event.target as HTMLElement | null;
-				const button = target?.closest<HTMLButtonElement>('[role="radio"]');
+				const target = event.target;
+				const button = target instanceof Element ? target.closest<HTMLButtonElement>('[role="radio"]') : null;
 				if (button) onThemeChange(parseTheme(button.value));
 			});
 

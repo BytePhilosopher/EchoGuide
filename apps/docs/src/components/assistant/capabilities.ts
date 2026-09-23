@@ -10,10 +10,15 @@ const PAGEFIND_URL = '/pagefind/pagefind.js';
 
 let pagefind: Pagefind | null = null;
 
+function isPagefind(value: unknown): value is Pagefind {
+	return typeof value === 'object' && value !== null && 'search' in value && typeof value.search === 'function';
+}
+
 async function loadPagefind(): Promise<Pagefind | null> {
 	if (pagefind) return pagefind;
 	try {
-		const mod = (await import(/* @vite-ignore */ PAGEFIND_URL)) as Pagefind;
+		const mod: unknown = await import(/* @vite-ignore */ PAGEFIND_URL);
+		if (!isPagefind(mod)) return null;
 		pagefind = mod;
 		return mod;
 	} catch {

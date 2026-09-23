@@ -72,7 +72,7 @@ The handlers in `apps/api` are early implementations and do not yet meet the who
 :::caution[Known drift]
 - **`POST /v1/commands`** transcribes every request as `am-ET`, ignoring `language`.
 - **`POST /v1/commands`** omits `command_id` on `REPROMPT` and `REJECTED`, and falls back to a non-UUID `cmd-<timestamp>` id.
-- **The planner adapter** returns a placeholder plan that does not match `ActionPlan`, so every command currently resolves to `REJECTED`.
+- **The confidence gate** checks `avg_logprob` in the wrong direction, so every command currently resolves to `REPROMPT`. Behind it, **the planner adapter** returns a placeholder plan that would also fail `ActionPlan`.
 :::
 
 A request example in Kotlin and TypeScript is on [Voice commands](/guides/voice-commands/#sending-a-command).
