@@ -61,4 +61,5 @@ missing.
 ## Next
 
 - [Voice commands](/guides/voice-commands/) — what EchoGuide accepts and how it decides
-- [Architecture](/reference/architecture/) — why the executor has to be native Kotlin
+- [Architecture overview](/architecture/overview/) — why the executor has to be native Kotlin
+- [API reference](/reference/api/) — the full `/v1/commands` contract
