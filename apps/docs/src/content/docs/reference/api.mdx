@@ -185,7 +185,6 @@ The tables above follow the Zod schemas. The YAML and the handler in
 - **`openapi.yaml`** has no `language` or `speech_response_text`, and types `action_plan` as a bare array of steps rather than an `ActionPlan` object.
 - **The handler** transcribes every request as `am-ET`, ignoring `language`.
 - **The handler** omits `command_id` on `REPROMPT` and `REJECTED`, and falls back to a non-UUID `cmd-<timestamp>` id.
-- **The handler** returns the internal error message in the `500` body. The design says internal detail stays server-side.
 :::
 
 A request example in Kotlin and TypeScript is on [Voice commands](/guides/voice-commands/#sending-a-command).
