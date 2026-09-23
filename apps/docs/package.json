@@ -8,11 +8,15 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "reference": "redocly bundle ../../packages/openapi/openapi.yaml --ext json --output public/api-reference/openapi.json",
+    "prebuild": "npm run reference",
+    "predev": "npm run reference"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.6",
     "@astrojs/starlight": "^0.42.2",
+    "@redocly/cli": "^2.54.2",
     "@voxide/react": "^0.8.0",
     "astro": "^7.2.10",
     "astro-mermaid": "^2.1.0",

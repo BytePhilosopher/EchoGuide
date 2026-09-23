@@ -1,28 +1,94 @@
 openapi: 3.0.3
 info:
-  title: EchoGuide Voice Accessibility API
+  title: EchoGuide API
   version: 1.0.0
-  description: API backend specification for EchoGuide Voice Accessibility Assistant (Amharic & English).
+  description: |
+    Contract for the EchoGuide backend. This file is the single source of truth: the Zod
+    schemas, TypeScript types, Kotlin client and docs reference are all generated from it.
+  license:
+    name: Proprietary
+    url: https://github.com/dawitlabs/EchoGuide
 servers:
-  - url: https://api.echoguide.app/v1
-    description: Production API Server
+  - url: https://api.echoguide.app
+    description: Production
+  - url: http://localhost:4000
+    description: Local development
+tags:
+  - name: health
+    description: Liveness probe for the availability SLO.
+  - name: auth
+    description: Device registration and session issue.
+  - name: users
+    description: The signed-in user's profile and preferences.
+  - name: commands
+    description: The voice command pipeline.
+  - name: consent
+    description: Append-only retention grants and data deletion.
+  - name: telemetry
+    description: Outcome and latency events. Never transcripts or audio.
+  - name: admin
+    description: Support tooling. Every route requires a named permission.
+
 paths:
-  /commands:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: The API process is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /v1/auth/register-device:
     post:
-      summary: Upload voice command buffer & screen context for transcription and action planning
+      tags: [auth]
+      operationId: registerDevice
+      summary: Register a device and issue a session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '200':
+          description: Device registered; the session is bound to the install id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterDeviceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v1/users/me:
+    get:
+      tags: [users]
+      operationId: getCurrentUser
+      summary: Get the signed-in user's profile
+      responses:
+        '200':
+          description: The current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/commands:
+    post:
+      tags: [commands]
       operationId: processCommand
+      summary: Transcribe a voice buffer and plan actions against the current screen
       parameters:
-        - name: X-Idempotency-Key
-          in: header
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: X-Install-ID
-          in: header
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/InstallId'
       requestBody:
         required: true
         content:
@@ -31,76 +97,466 @@ paths:
               $ref: '#/components/schemas/CommandRequest'
       responses:
         '200':
-          description: Planned action sequence or reprompt instruction
+          description: A validated plan, a request for confirmation, or an instruction to ask again.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommandResponse'
         '400':
-          description: Invalid request or audio buffer below 0.4s
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '429':
-          description: Rate limit exceeded
+          $ref: '#/components/responses/TooManyRequests'
         '500':
-          description: Provider failure or timeout
+          $ref: '#/components/responses/InternalError'
+
+  /v1/consent/grants:
+    post:
+      tags: [consent]
+      operationId: recordConsent
+      summary: Record a consent grant or revocation
+      description: Consent is append-only. Revoking writes a new row with granted set to false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentGrantRequest'
+      responses:
+        '200':
+          description: The grant was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentGrantResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/consent/user-data:
+    delete:
+      tags: [consent]
+      operationId: deleteUserData
+      summary: Delete all of the signed-in user's data
+      description: |
+        Rows are deleted by cascade. Retained audio in object storage is removed by a job that
+        retries until it succeeds; deletion is only reported complete once it has.
+      responses:
+        '200':
+          description: Deletion accepted and queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/telemetry/events:
+    post:
+      tags: [telemetry]
+      operationId: recordTelemetryEvent
+      summary: Record a command outcome and its stage timings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryEvent'
+      responses:
+        '202':
+          description: Buffered for a background write. Telemetry never blocks a command.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/admin/users/{userId}:
+    get:
+      tags: [admin]
+      operationId: getAdminUser
+      summary: Look up a user
+      description: 'Requires the `users.read` permission. Audited.'
+      security:
+        - adminSession: []
+      x-permission: users.read
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: The user's account status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/users/{userId}/suspend:
+    post:
+      tags: [admin]
+      operationId: suspendUser
+      summary: Suspend a user's account
+      description: 'Requires the `users.suspend` permission. Audited.'
+      security:
+        - adminSession: []
+      x-permission: users.suspend
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: The account is suspended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuspendUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+security:
+  - sessionToken: []
 
 components:
+  securitySchemes:
+    sessionToken:
+      type: http
+      scheme: bearer
+      description: Opaque session token from register-device, bound to the device's install id.
+    adminSession:
+      type: http
+      scheme: bearer
+      description: Separate admin credential. Each admin route also requires a named permission row.
+
+  parameters:
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated. A retried upload with the same key never executes or bills twice.
+      schema:
+        type: string
+        format: uuid
+    InstallId:
+      name: X-Install-ID
+      in: header
+      required: true
+      description: Identifies the installation, not the person. Sessions are bound to it.
+      schema:
+        type: string
+        minLength: 1
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+
+  responses:
+    BadRequest:
+      description: The request failed validation, or the audio was shorter than 0.4 s.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid session.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: The admin lacks the permission this route requires.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No such resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: A provider failed or timed out. Internal detail is never returned.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
   schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: A safe, human-readable message.
+
+    Locale:
+      type: string
+      enum: [am-ET, en-US]
+
+    HealthResponse:
+      type: object
+      required: [status, timestamp, service]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+
+    RegisterDeviceRequest:
+      type: object
+      required: [phone_hash, install_id, model]
+      properties:
+        phone_hash:
+          type: string
+          minLength: 1
+          description: The phone number, hashed on the device. The raw number is never sent.
+        install_id:
+          type: string
+          minLength: 1
+        model:
+          type: string
+          description: Device model, for crash and latency analysis.
+
+    RegisterDeviceResponse:
+      type: object
+      required: [status, session_token, expires_in]
+      properties:
+        status:
+          type: string
+          enum: [registered]
+        session_token:
+          type: string
+          description: Opaque. Revocable server-side; rotated on every refresh.
+        expires_in:
+          type: integer
+          minimum: 1
+          description: Seconds until the session expires.
+
+    UserPreferences:
+      type: object
+      required: [speech_rate, wake_word]
+      properties:
+        speech_rate:
+          type: integer
+          minimum: 1
+        wake_word:
+          type: string
+
+    CurrentUser:
+      type: object
+      required: [user_id, locale, preferences]
+      properties:
+        user_id:
+          type: string
+        locale:
+          $ref: '#/components/schemas/Locale'
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+
+    ScreenContext:
+      type: object
+      required: [current_package, view_tree_summary]
+      properties:
+        current_package:
+          type: string
+          description: Package name of the foreground app.
+        view_tree_summary:
+          type: string
+          description: The reduced view tree. Treated as data, never as instructions.
+
     CommandRequest:
       type: object
-      required:
-        - audio_base64
-        - duration_ms
-        - screen_context
+      required: [audio_base64, duration_ms, screen_context]
       properties:
         audio_base64:
           type: string
-          description: 16kHz mono PCM 16-bit audio buffer
+          description: 16 kHz mono PCM 16-bit audio, base64-encoded.
         duration_ms:
           type: integer
           minimum: 400
           maximum: 15000
+        language:
+          type: string
+          enum: [am-ET, en-US]
+          default: am-ET
         screen_context:
-          type: object
-          properties:
-            current_package:
-              type: string
-            view_tree_summary:
-              type: string
+          $ref: '#/components/schemas/ScreenContext'
+
+    CommandStatus:
+      type: string
+      enum: [ACCEPTED, REJECTED, REPROMPT, CONFIRMATION_REQUIRED]
+
+    ActionType:
+      type: string
+      description: The allowlist. Any other action is rejected before it reaches the phone.
+      enum: [TAP, SCROLL, TEXT_INPUT, BACK, HOME]
+
+    ActionStep:
+      type: object
+      required: [step_id, action_type, is_destructive]
+      properties:
+        step_id:
+          type: string
+          format: uuid
+        action_type:
+          $ref: '#/components/schemas/ActionType'
+        target_node_id:
+          type: string
+          description: Node in the reduced view tree.
+        payload:
+          type: string
+          description: Text for TEXT_INPUT.
+        is_destructive:
+          type: boolean
+          description: Forces a spoken confirmation before the step runs.
+
+    ActionPlan:
+      type: object
+      required: [plan_id, package_name, steps, requires_user_confirmation]
+      properties:
+        plan_id:
+          type: string
+          format: uuid
+        package_name:
+          type: string
+          description: The app the plan acts in.
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionStep'
+        requires_user_confirmation:
+          type: boolean
 
     CommandResponse:
       type: object
-      required:
-        - command_id
-        - status
+      required: [command_id, status]
       properties:
         command_id:
           type: string
           format: uuid
         status:
-          type: string
-          enum: [ACCEPTED, REJECTED, REPROMPT, CONFIRMATION_REQUIRED]
+          $ref: '#/components/schemas/CommandStatus'
         reprompt_reason:
           type: string
+          description: Present on REPROMPT and REJECTED.
         action_plan:
-          type: array
-          items:
-            $ref: '#/components/schemas/ActionStep'
+          $ref: '#/components/schemas/ActionPlan'
+        speech_response_text:
+          type: string
+          description: Variable content to speak, when the reply is not a pre-synthesised phrase.
 
-    ActionStep:
+    ConsentGrantRequest:
       type: object
-      required:
-        - step_id
-        - action_type
-        - is_destructive
+      required: [scope, granted]
       properties:
-        step_id:
+        scope:
           type: string
-        action_type:
-          type: string
-          enum: [TAP, SCROLL, TEXT_INPUT, BACK, HOME]
-        target_node_id:
-          type: string
-        payload:
-          type: string
-        is_destructive:
+          minLength: 1
+          description: What the grant covers, for example audio retention.
+        granted:
           type: boolean
+
+    ConsentGrantResponse:
+      type: object
+      required: [status, scope, granted]
+      properties:
+        status:
+          type: string
+          enum: [recorded]
+        scope:
+          type: string
+        granted:
+          type: boolean
+
+    DeletionResponse:
+      type: object
+      required: [status, task_id]
+      properties:
+        status:
+          type: string
+          enum: [deletion_queued]
+        task_id:
+          type: string
+
+    CommandOutcome:
+      type: string
+      enum: [done, failed, rejected, blocked, cancelled]
+
+    TelemetryEvent:
+      type: object
+      required: [outcome, duration_ms, stage_timings]
+      description: Records that a command happened and how it went, never what was said.
+      properties:
+        outcome:
+          $ref: '#/components/schemas/CommandOutcome'
+        duration_ms:
+          type: integer
+          minimum: 0
+          description: End of speech to terminal state.
+        stage_timings:
+          type: object
+          description: Milliseconds per pipeline stage.
+          additionalProperties:
+            type: integer
+            minimum: 0
+
+    TelemetryAccepted:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [buffered]
+
+    AccountStatus:
+      type: string
+      enum: [active, suspended]
+
+    AdminUser:
+      type: object
+      required: [userId, status, registered_at]
+      properties:
+        userId:
+          type: string
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        registered_at:
+          type: string
+          format: date-time
+
+    SuspendUserResponse:
+      type: object
+      required: [status, userId]
+      properties:
+        status:
+          type: string
+          enum: [suspended]
+        userId:
+          type: string

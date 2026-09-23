@@ -76,13 +76,17 @@ One schema, generated downward. The mobile client needs a Kotlin client for the 
 TypeScript types for the React Native layer. A hand-written contract would be maintained three
 times.
 
+**The YAML is written by hand and everything else is generated from it.** It is language-neutral,
+so the Kotlin side reads the same contract the TypeScript side does, without depending on either.
+
 ```mermaid
 flowchart TD
     accTitle: Contract generation
-    accDescr: Zod schemas used for backend runtime validation emit openapi.yaml, the source of truth. From it, openapi-generator produces the Kotlin client for the pipeline, openapi-typescript produces TypeScript types for React Native and admin, and redocly produces the API reference for the docs site.
-    zod[Zod schemas<br/>backend runtime validation] -->|emits| src[openapi.yaml<br/>source of truth]:::core
-    src -->|openapi-generator| kt[Kotlin client<br/>pipeline]
+    accDescr: openapi.yaml is written by hand and is the source of truth. From it, hey-api generates the Zod schemas the backend validates with, openapi-typescript generates TypeScript types for React Native and admin, openapi-generator generates the Kotlin client for the pipeline, and redocly generates the API reference for the docs site.
+    src[openapi.yaml<br/>written by hand · source of truth]:::core
+    src -->|hey-api| zod[Zod schemas<br/>backend runtime validation]
     src -->|openapi-typescript| ts[TypeScript types<br/>React Native + admin]
+    src -->|openapi-generator| kt[Kotlin client<br/>pipeline]
     src -->|redocly| docs[Docs site<br/>API reference]
 ```
 
@@ -95,4 +99,5 @@ is a vendor this system calls, and its endpoints happen to be OpenAI-compatible.
 portability property of the adapter, unrelated to how EchoGuide's API is described.
 :::
 
-The current contract is documented in the [API reference](/reference/api/).
+How to regenerate everything, and where the code still differs, is on the
+[API reference](/reference/api/) page.

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { ConfidenceGateSchema, ActionPlanSchema } from '@echoguide/openapi';
+import { zActionPlan } from '@echoguide/openapi';
+import { ConfidenceGateSchema } from './confidence-gate';
 import { AddisAIAdapter } from '../../shared/adapters/addis_ai_adapter';
 
 export const commandsModule = Router();
@@ -49,7 +50,7 @@ commandsModule.post('/v1/commands', async (req: Request, res: Response) => {
     const rawPlan = await addisAdapter.planActionSequence(sttResult.text, screen_context);
 
     // Validate schema & allowlist safety
-    const planValidation = ActionPlanSchema.safeParse(rawPlan);
+    const planValidation = zActionPlan.safeParse(rawPlan);
     if (!planValidation.success) {
       return res.status(200).json({
         status: "REJECTED",

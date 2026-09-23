@@ -71,7 +71,7 @@ The surviving `avg_logprob` is mapped onto 0–1 and gated on. These thresholds 
 point to tune against real recordings, not a result.
 
 :::caution[Schema mismatch]
-`ConfidenceGateSchema` in `packages/openapi` declares `avg_logprob` with `.max(-1.0)`, which
+`ConfidenceGateSchema` in `apps/api/src/modules/commands/confidence-gate.ts` declares `avg_logprob` with `.max(-1.0)`, which
 accepts only values at or below −1.0. The design says below −1.0 means the model was guessing,
 so the schema's direction is inverted. Treat the table above as the intent.
 :::
