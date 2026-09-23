@@ -48,6 +48,7 @@ export default defineConfig({
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
 				ThemeSelect: './src/components/ThemeSelect.astro',
+				PageTitle: './src/components/PageTitle.astro',
 			},
 			head: [
 				{

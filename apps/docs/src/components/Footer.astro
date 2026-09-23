@@ -2,16 +2,36 @@
 import Default from '@astrojs/starlight/components/Footer.astro';
 import { getCollection } from 'astro:content';
 import Assistant from './assistant/Assistant';
+import DiagramZoom from './DiagramZoom.astro';
 
 const docs = await getCollection('docs');
 const routes = docs
+	.filter((entry) => entry.id !== '404')
 	.map((entry) => ({
 		path: `/${entry.id}`.replace(/\/index$/, '') || '/',
 		title: entry.data.title,
 		description: entry.data.description ?? '',
 	}))
 	.sort((a, b) => a.path.localeCompare(b.path));
+
+const links = [
+	{ label: 'Using EchoGuide', href: '/guides/using-echoguide/' },
+	{ label: 'Privacy', href: '/reference/privacy/' },
+	{ label: 'Quickstart', href: '/guides/quickstart/' },
+	{ label: 'API reference', href: '/reference/api/' },
+	{ label: 'Architecture', href: '/architecture/overview/' },
+	{ label: 'GitHub', href: 'https://github.com/dawitlabs/EchoGuide' },
+];
 ---
 
 <Default><slot /></Default>
+<footer class="eg-site-footer not-content">
+	<p class="eg-site-footer-brand">EchoGuide — voice access to any Android app, in Amharic and English.</p>
+	<nav aria-label="Footer">
+		<ul>
+			{links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}
+		</ul>
+	</nav>
+</footer>
+<DiagramZoom />
 <Assistant routes={routes} client:only="react" transition:persist="voxide-assistant" />

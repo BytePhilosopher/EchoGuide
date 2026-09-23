@@ -3,6 +3,8 @@ title: Architecture overview
 description: The five components, the one voice vendor, the five constraints that shaped the design, and the targets it is measured against.
 ---
 
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
 A blind user speaks a command. EchoGuide transcribes it, plans a sequence of interface actions,
 and performs those actions inside the apps already on the phone. It ships bilingual, Amharic and
 English.
@@ -120,17 +122,19 @@ banking app does more damage than a week of downtime.
 
 ## Reading order
 
-Each page covers one part of the system.
+Each page covers one part of the system. Start with the mobile client and read down, or jump to what you need.
 
-1. [Mobile client](/architecture/mobile-client/) — the React Native and Kotlin split, and the one rule behind it
-2. [Command pipeline](/architecture/command-pipeline/) — capture, confidence gate, speech, lifecycle
-3. [Latency, cost, capacity](/architecture/performance/) — the budget and what it forces
-4. [Backend](/architecture/backend/) — modular monolith, dependency rule, contracts
-5. [Data](/architecture/data/) — schema, partitioning, consent, deletion
-6. [Security](/architecture/security/) — why the primary threat is the system itself
-7. [Failure and degradation](/architecture/failure/) — what the user hears when things break
-8. [Observability](/architecture/observability/) — traces, SLOs, and what logs never contain
-9. [Admin and docs clients](/architecture/other-clients/) — including voice on this site
-10. [Testing and layout](/architecture/testing/) — test gates and repository structure
-11. [Evolution](/architecture/evolution/) — the planned moves after launch
-12. [Decisions and risks](/architecture/decisions/) — ADRs, risk register, open questions
+<CardGrid>
+	<LinkCard title="Mobile client" href="/architecture/mobile-client/" description="The React Native and Kotlin split, and the one rule behind it." />
+	<LinkCard title="Command pipeline" href="/architecture/command-pipeline/" description="Capture, the confidence gate, speech output, and the command lifecycle." />
+	<LinkCard title="Latency, cost, capacity" href="/architecture/performance/" description="The 5.8 s budget with no slack, and what each command costs." />
+	<LinkCard title="Backend" href="/architecture/backend/" description="Modular monolith, the dependency rule, and one generated contract." />
+	<LinkCard title="Data" href="/architecture/data/" description="The schema, monthly partitions, append-only consent, deletion." />
+	<LinkCard title="Security" href="/architecture/security/" description="Why the primary threat is the system itself." />
+	<LinkCard title="Failure and degradation" href="/architecture/failure/" description="What breaks, and exactly what the user hears." />
+	<LinkCard title="Observability" href="/architecture/observability/" description="One request id, the SLOs, and what logs never contain." />
+	<LinkCard title="Admin and docs clients" href="/architecture/other-clients/" description="The admin portal, and voice navigation on this site." />
+	<LinkCard title="Testing and layout" href="/architecture/testing/" description="Which tests gate a merge, a release, and the bilingual launch." />
+	<LinkCard title="Evolution" href="/architecture/evolution/" description="The planned moves after launch, and why realtime is not first." />
+	<LinkCard title="Decisions and risks" href="/architecture/decisions/" description="The ADRs, the risk register, and the open questions." />
+</CardGrid>

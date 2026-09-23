@@ -1,0 +1,21 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+
+const group = Astro.locals.starlightRoute.sidebar.find(
+	(entry) => entry.type === 'group' && entry.entries.some((item) => item.type === 'link' && item.isCurrent),
+);
+---
+
+{group && <p class="eg-eyebrow">{group.label}</p>}
+<Default />
+
+<style>
+	.eg-eyebrow {
+		margin: 1rem 0 -0.5rem;
+		font-family: var(--sl-font-mono);
+		font-size: 0.72rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--eg-ember);
+	}
+</style>
