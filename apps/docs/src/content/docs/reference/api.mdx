@@ -25,7 +25,6 @@ Nothing below is written by hand. Change the YAML, rebuild, and every consumer f
 | --- | --- | --- |
 | Zod schemas | `@hey-api/openapi-ts` | The API, for runtime validation |
 | TypeScript types | `openapi-typescript` | The API, React Native and the admin portal |
-| Kotlin client | `openapi-generator` | The Android voice pipeline |
 | This site's reference | `redocly` | Readers of these docs |
 
 A breaking change to the contract fails the build of whatever depends on it, instead of reaching
@@ -35,12 +34,10 @@ a user.
 
 ```bash
 npm run build --workspace=@echoguide/openapi
-npm run generate:kotlin --workspace=@echoguide/openapi
 ```
 
-The first command lints the YAML, then generates the Zod schemas and TypeScript types and
-compiles the package. The Kotlin client is separate because it needs Java 11 or newer; it is
-written to `packages/openapi/generated/kotlin` with its own Gradle wrapper.
+This lints the YAML, generates the Zod schemas and TypeScript types, and compiles the package.
+The docs site bundles its reference from the same YAML on every build.
 
 Generated files are not committed. The YAML is the only thing to review.
 

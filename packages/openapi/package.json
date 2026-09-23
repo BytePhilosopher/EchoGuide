@@ -6,7 +6,6 @@
   "scripts": {
     "lint": "redocly lint openapi.yaml",
     "generate": "openapi-ts && openapi-typescript openapi.yaml -o src/generated/types.gen.ts",
-    "generate:kotlin": "openapi-generator-cli generate --generator-key kotlin",
     "build": "npm run lint && npm run generate && tsc -p tsconfig.json"
   },
   "dependencies": {
@@ -14,7 +13,6 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
-    "@openapitools/openapi-generator-cli": "^2.41.0",
     "@redocly/cli": "^2.54.2",
     "openapi-typescript": "^7.13.0",
     "typescript": "^5.4.5"

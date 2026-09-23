@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     Contract for the EchoGuide backend. This file is the single source of truth: the Zod
-    schemas, TypeScript types, Kotlin client and docs reference are all generated from it.
+    schemas, TypeScript types and docs reference are all generated from it.
   license:
     name: Proprietary
     url: https://github.com/dawitlabs/EchoGuide
