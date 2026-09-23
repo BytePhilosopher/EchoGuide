@@ -650,3 +650,121 @@ site-search dialog:focus-visible {
 	animation: none;
 	mix-blend-mode: normal;
 }
+
+.main-pane {
+	padding-block-end: 5rem;
+}
+
+.sl-markdown-content .sl-link-card {
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	padding: 1.1rem 1.2rem;
+	transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.sl-markdown-content .sl-link-card:hover,
+.sl-markdown-content .sl-link-card:focus-within {
+	border-color: var(--eg-ember);
+	transform: translateY(-2px);
+}
+
+.sl-markdown-content .sl-link-card .title {
+	font-family: "Funnel Display", var(--sl-font);
+	font-size: 1.02rem;
+	font-weight: 600;
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content .sl-link-card .description {
+	font-size: 0.875rem;
+	line-height: 1.55;
+	color: var(--eg-muted-fg);
+}
+
+.sl-markdown-content .sl-link-card .icon {
+	color: var(--eg-muted-fg);
+	transition: color 160ms ease, transform 160ms ease;
+}
+
+.sl-markdown-content .sl-link-card:hover .icon {
+	color: var(--eg-ember);
+	transform: translateX(3px);
+}
+
+.eg-site-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem 2rem;
+	margin-block-start: 3rem;
+	padding-block-start: 1.5rem;
+	border-top: 1px solid var(--sl-color-hairline);
+	font-size: 0.82rem;
+	color: var(--eg-muted-fg);
+}
+
+.eg-site-footer-brand {
+	margin: 0;
+}
+
+.eg-site-footer ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.eg-site-footer a {
+	color: var(--eg-muted-fg);
+	text-decoration: none;
+}
+
+.eg-site-footer a:hover {
+	color: var(--eg-ember);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sl-markdown-content .sl-link-card:hover,
+	.sl-markdown-content .sl-link-card:focus-within,
+	.sl-markdown-content .sl-link-card:hover .icon {
+		transform: none;
+	}
+}
+
+:root {
+	--sl-menu-button-size: 2.5rem;
+}
+
+@media (max-width: 50rem) {
+	site-search > button {
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		justify-content: center;
+		padding: 0;
+	}
+}
+
+button.sl-menu-button {
+	display: grid;
+	place-items: center;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-md);
+	background: var(--eg-card);
+	color: var(--sl-color-white);
+	box-shadow: var(--eg-shadow-chip);
+}
+
+button.sl-menu-button[aria-expanded="true"] {
+	border-color: var(--eg-ember);
+	color: var(--eg-ember);
+}
+
+button.sl-menu-button:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
