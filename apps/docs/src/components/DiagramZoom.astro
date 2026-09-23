@@ -1,0 +1,63 @@
+<dialog class="eg-zoom" aria-labelledby="eg-zoom-title">
+	<div class="eg-zoom-head">
+		<p id="eg-zoom-title" class="eg-zoom-title"></p>
+		<button type="button" class="eg-zoom-close" aria-label="Close diagram">
+			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+		</button>
+	</div>
+	<div class="eg-zoom-body"></div>
+</dialog>
+
+<script>
+	const EXPAND_ICON =
+		'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+	function diagramTitle(pre: HTMLElement): string {
+		const source = pre.getAttribute('data-diagram') ?? pre.textContent ?? '';
+		return source.match(/accTitle:\s*(.+)/)?.[1].trim() ?? 'Diagram';
+	}
+
+	function wrapDiagrams(): void {
+		for (const pre of document.querySelectorAll<HTMLElement>('.sl-markdown-content pre.mermaid')) {
+			if (pre.parentElement?.classList.contains('eg-diagram')) continue;
+			const wrapper = document.createElement('div');
+			wrapper.className = 'eg-diagram';
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.className = 'eg-diagram-expand';
+			button.setAttribute('aria-label', `Expand diagram: ${diagramTitle(pre)}`);
+			button.innerHTML = EXPAND_ICON;
+			pre.before(wrapper);
+			wrapper.append(pre, button);
+		}
+	}
+
+	function openDiagram(wrapper: HTMLElement): void {
+		const pre = wrapper.querySelector<HTMLElement>('pre.mermaid');
+		const svg = pre?.querySelector('svg');
+		const dialog = document.querySelector<HTMLDialogElement>('dialog.eg-zoom');
+		if (!pre || !svg || !dialog) return;
+		const copy = svg.cloneNode(true);
+		if (!(copy instanceof SVGSVGElement)) return;
+		copy.style.removeProperty('max-width');
+		copy.removeAttribute('width');
+		dialog.querySelector('.eg-zoom-body')?.replaceChildren(copy);
+		const title = dialog.querySelector('.eg-zoom-title');
+		if (title) title.textContent = diagramTitle(pre);
+		dialog.showModal();
+	}
+
+	document.addEventListener('click', (event) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+		const dialog = target.closest('dialog.eg-zoom');
+		if (dialog instanceof HTMLDialogElement) {
+			if (target === dialog || target.closest('.eg-zoom-close')) dialog.close();
+			return;
+		}
+		const wrapper = target.closest<HTMLElement>('.eg-diagram');
+		if (wrapper && (target.closest('.eg-diagram-expand') || target.closest('svg'))) openDiagram(wrapper);
+	});
+
+	document.addEventListener('astro:page-load', wrapDiagrams);
+</script>

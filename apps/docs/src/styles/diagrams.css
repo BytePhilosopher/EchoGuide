@@ -37,7 +37,7 @@
 	}
 }
 
-pre.mermaid svg {
+:is(pre.mermaid, .eg-zoom-body) svg {
 	display: block;
 	margin-inline: auto;
 	max-width: 100%;
@@ -45,35 +45,35 @@ pre.mermaid svg {
 	font-family: "Funnel Sans", var(--sl-font) !important;
 }
 
-pre.mermaid svg :is(text, tspan, .nodeLabel, .edgeLabel, .label, span, p) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(text, tspan, .nodeLabel, .edgeLabel, .label, span, p) {
 	fill: var(--eg-fg) !important;
 	color: var(--eg-fg) !important;
 }
 
-pre.mermaid svg .node :is(rect, circle, ellipse, polygon, path),
-pre.mermaid svg :is(.actor, rect.actor, .labelBox, .note, .er.entityBox, .er.attributeBoxOdd, .er.attributeBoxEven),
-pre.mermaid svg .stateGroup rect,
-pre.mermaid svg g.node rect.basic,
-pre.mermaid svg .entityBox,
-pre.mermaid svg .row-rect-odd path,
-pre.mermaid svg .row-rect-even path {
+:is(pre.mermaid, .eg-zoom-body) svg .node :is(rect, circle, ellipse, polygon, path),
+:is(pre.mermaid, .eg-zoom-body) svg :is(.actor, rect.actor, .labelBox, .note, .er.entityBox, .er.attributeBoxOdd, .er.attributeBoxEven),
+:is(pre.mermaid, .eg-zoom-body) svg .stateGroup rect,
+:is(pre.mermaid, .eg-zoom-body) svg g.node rect.basic,
+:is(pre.mermaid, .eg-zoom-body) svg .entityBox,
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-odd path,
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-even path {
 	fill: var(--eg-muted) !important;
 	stroke: var(--eg-control) !important;
 	stroke-width: 1px !important;
 }
 
-pre.mermaid svg .row-rect-odd path {
+:is(pre.mermaid, .eg-zoom-body) svg .row-rect-odd path {
 	fill: var(--eg-card) !important;
 }
 
-pre.mermaid svg .cluster rect {
+:is(pre.mermaid, .eg-zoom-body) svg .cluster rect {
 	fill: transparent !important;
 	stroke: var(--eg-control) !important;
 	stroke-dasharray: 4 4;
 	rx: 8px;
 }
 
-pre.mermaid svg .cluster-label :is(span, p, text) {
+:is(pre.mermaid, .eg-zoom-body) svg .cluster-label :is(span, p, text) {
 	fill: var(--eg-muted-fg) !important;
 	color: var(--eg-muted-fg) !important;
 	font-size: 0.78rem;
@@ -81,79 +81,79 @@ pre.mermaid svg .cluster-label :is(span, p, text) {
 	text-transform: uppercase;
 }
 
-pre.mermaid svg :is(.flowchart-link, .edgePath .path, .transition, .relationshipLine, .messageLine0, .messageLine1, .loopLine, .actor-line) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(.flowchart-link, .edgePath .path, .transition, .relationshipLine, .messageLine0, .messageLine1, .loopLine, .actor-line) {
 	stroke: var(--eg-muted-fg) !important;
 }
 
-pre.mermaid svg :is(marker path, .arrowheadPath, .arrowMarkerPath, #arrowhead path, .marker) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(marker path, .arrowheadPath, .arrowMarkerPath, #arrowhead path, .marker) {
 	fill: var(--eg-muted-fg) !important;
 	stroke: var(--eg-muted-fg) !important;
 }
 
-pre.mermaid svg :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
 	background-color: var(--eg-card) !important;
 	fill: var(--eg-card) !important;
 }
 
-pre.mermaid svg .edgeLabel :is(span, p) {
+:is(pre.mermaid, .eg-zoom-body) svg .edgeLabel :is(span, p) {
 	color: var(--eg-muted-fg) !important;
 	font-size: 0.82rem;
 }
 
-pre.mermaid svg g.node.core :is(rect, circle, polygon, path) {
+:is(pre.mermaid, .eg-zoom-body) svg g.node.core :is(rect, circle, polygon, path) {
 	fill: var(--eg-ember-wash) !important;
 	stroke: var(--eg-ember) !important;
 	stroke-width: 1.5px !important;
 }
 
-pre.mermaid svg g.node.ext :is(rect, circle, polygon, path) {
+:is(pre.mermaid, .eg-zoom-body) svg g.node.ext :is(rect, circle, polygon, path) {
 	fill: transparent !important;
 	stroke-dasharray: 4 3;
 }
 
-pre.mermaid svg g.node.person :is(rect, circle, polygon, path) {
+:is(pre.mermaid, .eg-zoom-body) svg g.node.person :is(rect, circle, polygon, path) {
 	fill: var(--eg-accent-surface) !important;
 	stroke: var(--eg-fg) !important;
 }
 
-pre.mermaid svg g.node.danger :is(rect, circle, polygon, path) {
+:is(pre.mermaid, .eg-zoom-body) svg g.node.danger :is(rect, circle, polygon, path) {
 	stroke: var(--eg-ember) !important;
 	stroke-dasharray: 3 3;
 }
 
-pre.mermaid svg rect.background {
+:is(pre.mermaid, .eg-zoom-body) svg rect.background {
 	fill: transparent !important;
 }
 
-pre.mermaid svg :is(.axis-line, .axisl-line, .ticks) :is(path, line) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(.axis-line, .axisl-line, .ticks) :is(path, line) {
 	stroke: var(--eg-control) !important;
 }
 
-pre.mermaid svg [class^="bar-plot"] rect {
+:is(pre.mermaid, .eg-zoom-body) svg [class^="bar-plot"] rect {
 	fill: var(--eg-ember-wash) !important;
 	stroke: var(--eg-ember) !important;
 	stroke-width: 1.5px;
 }
 
-pre.mermaid svg .quadrant rect {
+:is(pre.mermaid, .eg-zoom-body) svg .quadrant rect {
 	fill: var(--eg-muted) !important;
 }
 
-pre.mermaid svg .border line {
+:is(pre.mermaid, .eg-zoom-body) svg .border line {
 	stroke: var(--eg-control) !important;
 }
 
-pre.mermaid svg .data-point circle {
+:is(pre.mermaid, .eg-zoom-body) svg .data-point circle {
 	fill: var(--eg-ember) !important;
 	stroke: none !important;
 }
 
-pre.mermaid svg .timeline-node .node-bkg {
+:is(pre.mermaid, .eg-zoom-body) svg .timeline-node .node-bkg {
 	fill: var(--eg-muted) !important;
 	stroke: var(--eg-control) !important;
 }
 
-pre.mermaid svg :is(.lineWrapper line, .timeline-node line) {
+:is(pre.mermaid, .eg-zoom-body) svg :is(.lineWrapper line, .timeline-node line) {
 	stroke: var(--eg-control) !important;
 }
 
@@ -162,11 +162,139 @@ pre.mermaid svg :is(.lineWrapper line, .timeline-node line) {
 		padding-inline: 0.75rem;
 	}
 
-	pre.mermaid svg {
+	:is(pre.mermaid, .eg-zoom-body) svg {
 		min-width: 34rem;
 	}
 }
 
-pre.mermaid svg .edgeLabel :is(p, span, div) {
+:is(pre.mermaid, .eg-zoom-body) svg .edgeLabel :is(p, span, div) {
 	background-color: var(--eg-card) !important;
+}
+
+.eg-diagram {
+	position: relative;
+}
+
+.eg-diagram pre.mermaid[data-processed] svg {
+	cursor: zoom-in;
+}
+
+.eg-diagram-expand {
+	position: absolute;
+	inset-block-start: 0.6rem;
+	inset-inline-end: 0.6rem;
+	display: grid;
+	place-items: center;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	border: 1px solid var(--eg-control);
+	border-radius: var(--eg-r-md);
+	background: var(--eg-card);
+	color: var(--eg-muted-fg);
+	cursor: pointer;
+	transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.eg-diagram-expand:hover {
+	color: var(--eg-ember);
+	border-color: var(--eg-ember);
+}
+
+.eg-diagram-expand:active {
+	background: var(--eg-ember-wash);
+}
+
+.eg-diagram-expand:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
+
+dialog.eg-zoom {
+	inline-size: min(96vw, 90rem);
+	max-inline-size: none;
+	block-size: min(92vh, 60rem);
+	max-block-size: none;
+	margin: auto;
+	padding: 0;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	color: var(--eg-fg);
+	box-shadow: var(--eg-shadow-float);
+}
+
+dialog.eg-zoom[open] {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	animation: eg-zoom-in 160ms ease-out;
+}
+
+dialog.eg-zoom::backdrop {
+	background: color-mix(in srgb, var(--eg-bg) 80%, transparent);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+}
+
+.eg-zoom-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+	border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+.eg-zoom-title {
+	margin: 0;
+	font-family: var(--sl-font-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--eg-muted-fg);
+}
+
+.eg-zoom-close {
+	display: grid;
+	place-items: center;
+	inline-size: 2.5rem;
+	block-size: 2.5rem;
+	border: 1px solid var(--eg-control);
+	border-radius: var(--eg-r-md);
+	background: transparent;
+	color: var(--eg-fg);
+	cursor: pointer;
+}
+
+.eg-zoom-close:hover {
+	border-color: var(--eg-ember);
+	color: var(--eg-ember);
+}
+
+.eg-zoom-close:focus-visible {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
+
+.eg-zoom-body {
+	overflow: auto;
+	padding: 1.5rem;
+}
+
+dialog.eg-zoom .eg-zoom-body svg {
+	inline-size: 100%;
+	block-size: 100%;
+	max-inline-size: 100%;
+}
+
+@keyframes eg-zoom-in {
+	from {
+		opacity: 0;
+		transform: scale(0.98);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	dialog.eg-zoom[open] {
+		animation: none;
+	}
 }
