@@ -48,6 +48,11 @@
 	padding-inline: clamp(1.25rem, 6vw, 5rem);
 }
 
+.landing > .stats {
+	padding-inline: 0;
+	margin-inline: clamp(1.25rem, 6vw, 5rem);
+}
+
 .ascii-bg {
 	position: absolute;
 	inset: 0;
@@ -397,6 +402,7 @@
 }
 
 .step {
+	position: relative;
 	display: grid;
 	grid-template-columns: clamp(2.6rem, 5.5vw, 3.6rem) 1fr;
 	gap: clamp(1rem, 3vw, 2rem);
@@ -437,6 +443,31 @@
 	font-size: 1.08rem;
 	font-weight: 600;
 	color: var(--sl-color-white);
+}
+
+.landing .step h3 a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.landing .step h3 a::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: var(--eg-r-md);
+}
+
+.landing .step h3 a:focus-visible {
+	outline: none;
+}
+
+.landing .step:has(a:focus-visible) {
+	outline: 2px solid var(--eg-ember);
+	outline-offset: 2px;
+}
+
+.landing .step:hover h3 a {
+	color: var(--eg-ember);
 }
 
 .step p {
