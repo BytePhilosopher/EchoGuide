@@ -63,7 +63,12 @@ commandsModule.post('/v1/commands', async (req: Request, res: Response) => {
       action_plan: rawPlan,
     });
 
-  } catch (error: any) {
-    return res.status(500).json({ error: "Command pipeline processing failed", details: error.message });
+  } catch (error: unknown) {
+    console.error(JSON.stringify({
+      event: "command.failed",
+      requestId: idempotencyKey,
+      error: error instanceof Error ? error.message : "unknown",
+    }));
+    return res.status(500).json({ error: "Command pipeline processing failed" });
   }
 });
