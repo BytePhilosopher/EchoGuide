@@ -44,7 +44,7 @@ function createClient(publicKey: string, routes: DocsRoute[]): VoxideClient {
 		},
 		navigateTo: {
 			description:
-				'Open a documentation page by name, for example "quickstart", "architecture", or "privacy".',
+				'Open a documentation page by name, for example "quickstart", "security", "command pipeline", "API reference", or "privacy".',
 			params: {
 				section: {
 					type: 'string',
