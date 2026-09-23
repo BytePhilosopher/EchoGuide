@@ -432,9 +432,7 @@ starlight-toc > nav > ul > li:first-child {
 	}
 }
 
-:root,
 .main-pane,
-
 .content-panel .sl-container,
 .sl-markdown-content {
 	max-width: 818px;
