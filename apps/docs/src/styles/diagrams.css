@@ -14,15 +14,52 @@
 
 .sl-markdown-content pre.mermaid:not([data-processed]) {
 	min-height: 14rem;
-	background: var(--eg-card);
 	animation: eg-diagram-pulse 1.6s ease-in-out infinite;
 }
 
 .sl-markdown-content pre.mermaid[data-processed] {
 	min-height: 0;
-	background: var(--eg-card);
 	color: var(--eg-fg);
 	white-space: normal;
+}
+
+.sl-markdown-content .eg-diagram {
+	margin-block: 1.75rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--eg-r-lg);
+	background: var(--eg-card);
+	box-shadow: var(--eg-shadow-card);
+	overflow: hidden;
+}
+
+.sl-markdown-content .eg-diagram pre.mermaid,
+.sl-markdown-content .eg-diagram pre.mermaid[data-processed] {
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.eg-diagram-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.5rem 0.5rem 0.5rem 1rem;
+	border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+.eg-diagram-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--eg-muted-fg);
 }
 
 @keyframes eg-diagram-pulse {
@@ -165,14 +202,19 @@
 	:is(pre.mermaid, .eg-zoom-body) svg {
 		min-width: 34rem;
 	}
+
+	.sl-markdown-content .eg-diagram pre.mermaid[data-processed] {
+		background:
+			linear-gradient(to right, var(--eg-card) 30%, transparent) left / 2.5rem 100% no-repeat local,
+			linear-gradient(to left, var(--eg-card) 30%, transparent) right / 2.5rem 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--eg-scroll-shadow), transparent) left / 1.1rem 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--eg-scroll-shadow), transparent) right / 1.1rem 100% no-repeat scroll;
+		background-color: var(--eg-card);
+	}
 }
 
 :is(pre.mermaid, .eg-zoom-body) svg .edgeLabel :is(p, span, div) {
 	background-color: var(--eg-card) !important;
-}
-
-.eg-diagram {
-	position: relative;
 }
 
 .eg-diagram pre.mermaid[data-processed] svg {
@@ -180,9 +222,7 @@
 }
 
 .eg-diagram-expand {
-	position: absolute;
-	inset-block-start: 0.6rem;
-	inset-inline-end: 0.6rem;
+	flex-shrink: 0;
 	display: grid;
 	place-items: center;
 	inline-size: 2.25rem;
@@ -207,94 +247,4 @@
 .eg-diagram-expand:focus-visible {
 	outline: 2px solid var(--eg-ember);
 	outline-offset: 2px;
-}
-
-dialog.eg-zoom {
-	inline-size: min(96vw, 90rem);
-	max-inline-size: none;
-	block-size: min(92vh, 60rem);
-	max-block-size: none;
-	margin: auto;
-	padding: 0;
-	border: 1px solid var(--sl-color-hairline);
-	border-radius: var(--eg-r-lg);
-	background: var(--eg-card);
-	color: var(--eg-fg);
-	box-shadow: var(--eg-shadow-float);
-}
-
-dialog.eg-zoom[open] {
-	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
-	animation: eg-zoom-in 160ms ease-out;
-}
-
-dialog.eg-zoom::backdrop {
-	background: color-mix(in srgb, var(--eg-bg) 80%, transparent);
-	-webkit-backdrop-filter: blur(4px);
-	backdrop-filter: blur(4px);
-}
-
-.eg-zoom-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	padding: 0.75rem 0.75rem 0.75rem 1.25rem;
-	border-bottom: 1px solid var(--sl-color-hairline);
-}
-
-.eg-zoom-title {
-	margin: 0;
-	font-family: var(--sl-font-mono);
-	font-size: 0.75rem;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--eg-muted-fg);
-}
-
-.eg-zoom-close {
-	display: grid;
-	place-items: center;
-	inline-size: 2.5rem;
-	block-size: 2.5rem;
-	border: 1px solid var(--eg-control);
-	border-radius: var(--eg-r-md);
-	background: transparent;
-	color: var(--eg-fg);
-	cursor: pointer;
-}
-
-.eg-zoom-close:hover {
-	border-color: var(--eg-ember);
-	color: var(--eg-ember);
-}
-
-.eg-zoom-close:focus-visible {
-	outline: 2px solid var(--eg-ember);
-	outline-offset: 2px;
-}
-
-.eg-zoom-body {
-	overflow: auto;
-	padding: 1.5rem;
-}
-
-dialog.eg-zoom .eg-zoom-body svg {
-	inline-size: 100%;
-	block-size: 100%;
-	max-inline-size: 100%;
-}
-
-@keyframes eg-zoom-in {
-	from {
-		opacity: 0;
-		transform: scale(0.98);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	dialog.eg-zoom[open] {
-		animation: none;
-	}
 }

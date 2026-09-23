@@ -52,6 +52,8 @@
 	--sl-nav-height: 56px;
 	--sl-menu-button-size: 2.5rem;
 
+	--eg-text-label: 0.75rem;
+	--eg-scroll-shadow: color-mix(in srgb, var(--eg-fg) 28%, transparent);
 	--eg-toc-width: 268px;
 	--eg-voice-bar-clearance: 5rem;
 }

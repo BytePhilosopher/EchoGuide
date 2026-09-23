@@ -293,7 +293,7 @@
 
 .who {
 	font-family: var(--sl-font-mono);
-	font-size: 0.72rem;
+	font-size: var(--eg-text-label);
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
 	color: var(--eg-muted-fg);
@@ -512,6 +512,8 @@
 }
 
 .panel a {
+	display: inline-block;
+	padding-block: 0.35rem;
 	color: var(--eg-ember);
 	font-weight: 500;
 	text-decoration: none;

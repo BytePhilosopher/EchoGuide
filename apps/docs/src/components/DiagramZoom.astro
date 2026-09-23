@@ -1,3 +1,7 @@
+<template id="eg-expand-icon">
+	<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+</template>
+
 <dialog class="eg-zoom" aria-labelledby="eg-zoom-title">
 	<div class="eg-zoom-head">
 		<p id="eg-zoom-title" class="eg-zoom-title"></p>
@@ -9,31 +13,40 @@
 </dialog>
 
 <script>
-	const EXPAND_ICON =
-		'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
 	function diagramTitle(pre: HTMLElement): string {
 		const source = pre.getAttribute('data-diagram') ?? pre.textContent ?? '';
 		return source.match(/accTitle:\s*(.+)/)?.[1].trim() ?? 'Diagram';
 	}
 
+	function createExpandButton(title: string): HTMLButtonElement {
+		const button = document.createElement('button');
+		button.type = 'button';
+		button.className = 'eg-diagram-expand';
+		button.setAttribute('aria-label', `Expand diagram: ${title}`);
+		const icon = document.querySelector<HTMLTemplateElement>('#eg-expand-icon');
+		if (icon) button.append(icon.content.cloneNode(true));
+		return button;
+	}
+
 	function wrapDiagrams(): void {
 		for (const pre of document.querySelectorAll<HTMLElement>('.sl-markdown-content pre.mermaid')) {
-			if (pre.parentElement?.classList.contains('eg-diagram')) continue;
-			const wrapper = document.createElement('div');
-			wrapper.className = 'eg-diagram';
-			const button = document.createElement('button');
-			button.type = 'button';
-			button.className = 'eg-diagram-expand';
-			button.setAttribute('aria-label', `Expand diagram: ${diagramTitle(pre)}`);
-			button.innerHTML = EXPAND_ICON;
-			pre.before(wrapper);
-			wrapper.append(pre, button);
+			if (pre.closest('.eg-diagram')) continue;
+			const title = diagramTitle(pre);
+			const figure = document.createElement('figure');
+			figure.className = 'eg-diagram';
+			const caption = document.createElement('figcaption');
+			caption.className = 'eg-diagram-bar';
+			const label = document.createElement('span');
+			label.className = 'eg-diagram-title';
+			label.textContent = title;
+			caption.append(label, createExpandButton(title));
+			pre.before(figure);
+			figure.append(caption, pre);
 		}
 	}
 
-	function openDiagram(wrapper: HTMLElement): void {
-		const pre = wrapper.querySelector<HTMLElement>('pre.mermaid');
+	function openDiagram(figure: HTMLElement): void {
+		const pre = figure.querySelector<HTMLElement>('pre.mermaid');
 		const svg = pre?.querySelector('svg');
 		const dialog = document.querySelector<HTMLDialogElement>('dialog.eg-zoom');
 		if (!pre || !svg || !dialog) return;
@@ -47,17 +60,117 @@
 		dialog.showModal();
 	}
 
+	function handleDialogClick(dialog: HTMLDialogElement, target: Element): void {
+		if (target === dialog || target.closest('.eg-zoom-close')) dialog.close();
+	}
+
+	function handleDiagramClick(target: Element): void {
+		const figure = target.closest<HTMLElement>('.eg-diagram');
+		if (!figure) return;
+		const isExpandButton = target.closest('.eg-diagram-expand') !== null;
+		const isRenderedDiagram = target.closest('pre.mermaid[data-processed]') !== null;
+		if (isExpandButton || isRenderedDiagram) openDiagram(figure);
+	}
+
 	document.addEventListener('click', (event) => {
 		const target = event.target;
 		if (!(target instanceof Element)) return;
 		const dialog = target.closest('dialog.eg-zoom');
-		if (dialog instanceof HTMLDialogElement) {
-			if (target === dialog || target.closest('.eg-zoom-close')) dialog.close();
-			return;
-		}
-		const wrapper = target.closest<HTMLElement>('.eg-diagram');
-		if (wrapper && (target.closest('.eg-diagram-expand') || target.closest('svg'))) openDiagram(wrapper);
+		if (dialog instanceof HTMLDialogElement) handleDialogClick(dialog, target);
+		else handleDiagramClick(target);
 	});
 
 	document.addEventListener('astro:page-load', wrapDiagrams);
 </script>
+
+<style>
+	dialog.eg-zoom {
+		inline-size: min(96vw, 90rem);
+		max-inline-size: none;
+		block-size: min(92vh, 60rem);
+		max-block-size: none;
+		margin: auto;
+		padding: 0;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: var(--eg-r-lg);
+		background: var(--eg-card);
+		color: var(--eg-fg);
+		box-shadow: var(--eg-shadow-float);
+	}
+
+	dialog.eg-zoom[open] {
+		display: grid;
+		grid-template-rows: auto minmax(0, 1fr);
+		animation: eg-zoom-in 160ms ease-out;
+	}
+
+	dialog.eg-zoom::backdrop {
+		background: color-mix(in srgb, var(--eg-bg) 80%, transparent);
+		-webkit-backdrop-filter: blur(4px);
+		backdrop-filter: blur(4px);
+	}
+
+	.eg-zoom-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+		border-bottom: 1px solid var(--sl-color-hairline);
+	}
+
+	.eg-zoom-title {
+		margin: 0;
+		font-family: var(--sl-font-mono);
+		font-size: 0.75rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--eg-muted-fg);
+	}
+
+	.eg-zoom-close {
+		display: grid;
+		place-items: center;
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		border: 1px solid var(--eg-control);
+		border-radius: var(--eg-r-md);
+		background: transparent;
+		color: var(--eg-fg);
+		cursor: pointer;
+	}
+
+	.eg-zoom-close:hover {
+		border-color: var(--eg-ember);
+		color: var(--eg-ember);
+	}
+
+	.eg-zoom-close:focus-visible {
+		outline: 2px solid var(--eg-ember);
+		outline-offset: 2px;
+	}
+
+	.eg-zoom-body {
+		overflow: auto;
+		padding: 1.5rem;
+	}
+
+	.eg-zoom-body :global(svg) {
+		inline-size: 100%;
+		block-size: 100%;
+		max-inline-size: 100%;
+	}
+
+	@keyframes eg-zoom-in {
+		from {
+			opacity: 0;
+			transform: scale(0.98);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		dialog.eg-zoom[open] {
+			animation: none;
+		}
+	}
+</style>

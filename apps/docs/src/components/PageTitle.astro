@@ -1,21 +1,131 @@
 ---
 import Default from '@astrojs/starlight/components/PageTitle.astro';
+import { markdownPath } from '../lib/page-markdown';
 
-const group = Astro.locals.starlightRoute.sidebar.find(
-	(entry) => entry.type === 'group' && entry.entries.some((item) => item.type === 'link' && item.isCurrent),
+const { entry, sidebar } = Astro.locals.starlightRoute;
+const group = sidebar.find(
+	(item) => item.type === 'group' && item.entries.some((link) => link.type === 'link' && link.isCurrent),
 );
+const markdownHref = markdownPath(entry.id);
 ---
 
-{group && <p class="eg-eyebrow">{group.label}</p>}
+{
+	group && (
+		<div class="eg-page-meta">
+			<p class="eg-eyebrow">{group.label}</p>
+			<div class="eg-page-actions">
+				<button type="button" class="eg-copy-page" data-markdown={markdownHref}>
+					<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+					<span class="eg-copy-label">Copy page</span>
+				</button>
+				<a class="eg-view-markdown" href={markdownHref}>View as Markdown</a>
+				<span class="sr-only" role="status" aria-live="polite"></span>
+			</div>
+		</div>
+	)
+}
 <Default />
 
+<script>
+	const LABEL_RESET_MS = 2000;
+
+	async function copyPage(button: HTMLButtonElement): Promise<void> {
+		const label = button.querySelector('.eg-copy-label');
+		const status = button.parentElement?.querySelector('[role="status"]');
+		const href = button.dataset.markdown;
+		if (!label || !status || !href) return;
+		button.disabled = true;
+		try {
+			const response = await fetch(href);
+			if (!response.ok) throw new Error(`Markdown request failed: ${response.status}`);
+			await navigator.clipboard.writeText(await response.text());
+			label.textContent = 'Copied';
+			status.textContent = 'Page copied as Markdown';
+		} catch {
+			label.textContent = 'Copy failed';
+			status.textContent = 'Could not copy the page. Use View as Markdown instead.';
+		} finally {
+			button.disabled = false;
+			setTimeout(() => {
+				label.textContent = 'Copy page';
+				status.textContent = '';
+			}, LABEL_RESET_MS);
+		}
+	}
+
+	document.addEventListener('click', (event) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+		const button = target.closest('.eg-copy-page');
+		if (button instanceof HTMLButtonElement) void copyPage(button);
+	});
+</script>
+
 <style>
+	.eg-page-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem 1rem;
+		margin: 1rem 0 -0.25rem;
+	}
+
 	.eg-eyebrow {
-		margin: 1rem 0 -0.5rem;
+		margin: 0;
 		font-family: var(--sl-font-mono);
-		font-size: 0.72rem;
+		font-size: var(--eg-text-label);
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
+		color: var(--eg-ember);
+	}
+
+	.eg-page-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.eg-copy-page {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-block-size: 2rem;
+		padding: 0.3rem 0.7rem;
+		border: 1px solid var(--eg-control);
+		border-radius: var(--eg-r-md);
+		background: var(--eg-card);
+		color: var(--sl-color-white);
+		font-size: 0.8rem;
+		cursor: pointer;
+		transition: border-color 140ms ease, color 140ms ease;
+	}
+
+	.eg-copy-page:hover {
+		border-color: var(--eg-ember);
+		color: var(--eg-ember);
+	}
+
+	.eg-copy-page:disabled {
+		cursor: progress;
+		opacity: 0.7;
+	}
+
+	.eg-copy-page:focus-visible,
+	.eg-view-markdown:focus-visible {
+		outline: 2px solid var(--eg-ember);
+		outline-offset: 2px;
+	}
+
+	.eg-view-markdown {
+		display: inline-block;
+		padding-block: 0.3rem;
+		font-size: 0.8rem;
+		color: var(--eg-muted-fg);
+		text-decoration: none;
+	}
+
+	.eg-view-markdown:hover {
 		color: var(--eg-ember);
 	}
 </style>

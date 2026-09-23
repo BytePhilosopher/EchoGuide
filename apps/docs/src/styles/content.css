@@ -82,7 +82,11 @@ h1, h2, h3, h4 {
 .sl-markdown-content th:not(:where(.not-content *)) {
 	background: var(--eg-card);
 	color: var(--sl-color-gray-3);
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
 	font-weight: 500;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
 	text-align: start;
 }
 
@@ -108,9 +112,38 @@ h1, h2, h3, h4 {
 
 .sl-markdown-content .starlight-aside__title {
 	font-family: var(--sl-font-mono);
-	font-size: 0.72rem;
+	font-size: var(--eg-text-label);
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
+	color: var(--eg-ember);
+}
+
+.sl-markdown-content :is(.starlight-aside__title, th) code {
+	font-size: inherit;
+}
+
+.sl-markdown-content > p:first-child {
+	font-size: 1.125rem;
+	line-height: 1.7;
+	color: var(--sl-color-white);
+}
+
+.sl-markdown-content {
+	counter-reset: eg-section;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *)) {
+	counter-increment: eg-section;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *))::before {
+	content: counter(eg-section, decimal-leading-zero) / "";
+	margin-inline-end: 0.75rem;
+	font-family: var(--sl-font-mono);
+	font-size: var(--eg-text-label);
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	vertical-align: 0.35em;
 	color: var(--eg-ember);
 }
 
@@ -166,6 +199,12 @@ h1, h2, h3, h4 {
 	color: var(--eg-ember);
 }
 
+@media (hover: none) {
+	.sl-anchor-link {
+		display: none;
+	}
+}
+
 .sl-anchor-link .sl-anchor-icon {
 	width: 0.85em;
 	height: 0.85em;
@@ -179,6 +218,12 @@ h1, h2, h3, h4 {
 	.sl-markdown-content table:not(:where(.not-content *)) {
 		display: block;
 		overflow-x: auto;
+		background:
+			linear-gradient(to right, var(--eg-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+			linear-gradient(to left, var(--eg-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--eg-scroll-shadow), transparent) left / 1.1rem 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--eg-scroll-shadow), transparent) right / 1.1rem 100% no-repeat scroll;
+		background-color: var(--eg-bg);
 	}
 }
 

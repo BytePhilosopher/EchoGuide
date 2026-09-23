@@ -37,6 +37,10 @@ All in `dependencies`, never `devDependencies`.
 
 ```
 astro.config.mjs                         title, sidebar, fonts, overrides, integrations, customCss order
+src/site.ts                              SITE_TITLE, SITE_DESCRIPTION, SIDEBAR — single source for config + llms.txt
+src/lib/page-markdown.ts                 toMarkdown(entry), markdownPath(id)
+src/pages/llms.txt.ts                    /llms.txt, grouped in sidebar order, links to .md twins
+src/pages/[...slug].md.ts                raw Markdown twin of every docs page (MDX imports stripped)
 src/integrations/
   ignore-diagrams-in-search.ts           build hook: tags diagram <pre> with data-pagefind-ignore
 src/env.d.ts                         7   PUBLIC_VOXIDE_KEY typing
@@ -51,8 +55,8 @@ src/styles/diagrams.css                  mermaid SVG theming — all colours fro
 src/components/Head.astro            7   override: adds <ClientRouter />
 src/components/Footer.astro              override: site footer (links derived from sidebar groups + SocialIcons),
                                          DiagramZoom, Assistant (route list excludes 404); footer CSS is scoped here
-src/components/PageTitle.astro           override: eyebrow = current sidebar group label, then default h1
-src/components/DiagramZoom.astro         wraps each diagram with an expand button; native <dialog> viewer
+src/components/PageTitle.astro           override: eyebrow (sidebar group) + Copy page / View as Markdown, then h1
+src/components/DiagramZoom.astro         wraps each diagram in <figure> + caption bar (title, expand); <dialog> viewer, its CSS scoped here
 src/components/assistant/
   Assistant.tsx                    111   VoxideClient + capability registration
   capabilities.ts                  130   the four handlers + fuzzy matcher
@@ -82,6 +86,8 @@ Tokens live in `src/styles/theme.css`. `--eg-*` is the palette; `--sl-*` maps it
 Component rules live in the per-area files listed above; `customCss` order in `astro.config.mjs` is the cascade order.
 Breakpoints use range syntax only: `(width < 50rem)`, `(width >= 50rem)`, `(50rem <= width < 72rem)`, `(width >= 72rem)`.
 Layout constants are tokens: `--eg-toc-width`, `--eg-voice-bar-clearance`, `--sl-menu-button-size`.
+Type/effect tokens: `--eg-text-label` (every mono uppercase label), `--eg-scroll-shadow` (edge shadow on horizontally scrolling tables/diagrams).
+Content pages: first paragraph is the lede (1.125rem); h2s get a mono `01` counter via `::before` with empty alt text (`/ ""`) so screen readers skip it; table headers use the label style; heading anchor links are hidden on `(hover: none)`.
 Dark is primary (`:root`); light is a derived counterpart (`:root[data-theme="light"]`).
 
 ```
@@ -208,6 +214,7 @@ Keep that for any new diagram.
 - Don't use `autonumber` in sequence diagrams — the numbered circles collide with self-message labels.
 - Under 50rem the SVG gets `min-width: 34rem` and the frame scrolls; do not centre with flex
   (overflowing flex-centred content clips on the left).
+- The card frame is on `figure.eg-diagram`, not the `<pre>`: astro-mermaid injects `pre.mermaid[data-processed]` styles that would otherwise override it.
 - `DiagramZoom` clones the rendered SVG into `.eg-zoom-body`, so theming selectors are written as
   `:is(pre.mermaid, .eg-zoom-body) svg …`. Keep that form for new diagram rules.
 - Source text is excluded from Pagefind by the inline build hook; without it, search excerpts
@@ -218,5 +225,5 @@ Keep that for any new diagram.
 - `site` is unset in `astro.config.mjs`, so `@astrojs/sitemap` skips every build. Needs the deploy URL.
 - `reference/api.mdx` lists drift between Zod, `openapi.yaml` and the handler. Update it when
   `packages/openapi` or `commands.module.ts` change.
-- `Assistant.tsx` hardcodes `theme: 'dark'` for the widget, so it stays dark in light mode.
+- The Voxide widget takes its theme from `data-theme` at session start and is pinned `bottom-right` in code, which overrides the dashboard (Voxide logs a console warning about it). Toggling the site theme mid-session does not restyle the widget until reload.
 - `voice-commands.mdx` documents `avg_logprob` as "at most -1.0", matching `ConfidenceGateSchema`. The architecture doc §6.2 says below -1.0 means *guessing*, so the schema's `.max(-1.0)` is inverted. The schema is out of scope here; if it is ever fixed, update that line too.
