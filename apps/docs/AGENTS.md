@@ -44,7 +44,9 @@ src/styles/theme.css               523   design system — all --eg-* and --sl-*
 src/styles/landing.css             362   homepage only, imported by Landing.astro
 src/styles/diagrams.css                  mermaid SVG theming — all colours from --eg-* tokens
 src/components/Head.astro            7   override: adds <ClientRouter />
-src/components/Footer.astro         17   override: mounts Assistant, builds route list
+src/components/Footer.astro              override: site footer, DiagramZoom, Assistant (route list excludes 404)
+src/components/PageTitle.astro           override: eyebrow = current sidebar group label, then default h1
+src/components/DiagramZoom.astro         wraps each diagram with an expand button; native <dialog> viewer
 src/components/assistant/
   Assistant.tsx                    111   VoxideClient + capability registration
   capabilities.ts                  130   the four handlers + fuzzy matcher
@@ -52,6 +54,7 @@ src/components/landing/
   Landing.astro                    123   homepage sections + ASCII field generator
 src/content/docs/
   index.mdx                         13   splash, renders <Landing />
+  404.mdx                               custom 404 (splash, LinkCards, pagefind: false)
   guides/using-echoguide.md         94   END USER — plain language, no monorepo
   guides/quickstart.md              64   developers — local stack
   guides/what-you-hear.md               END USER — every spoken failure line, plain language
@@ -59,7 +62,7 @@ src/content/docs/
   guides/voice-commands.mdx        124   has <Tabs> — showExample target
   reference/api.mdx                     /v1/commands contract, <Tabs> (TypeScript/YAML), drift list
   reference/privacy.md              49
-  architecture/*.md                     13 pages, one per section of the architecture doc
+  architecture/*.md(x)                  13 pages (overview.mdx ends in a LinkCard grid), one per section of the architecture doc
                                         (overview, mobile-client, command-pipeline, performance,
                                         backend, data, security, failure, observability,
                                         other-clients, testing, evolution, decisions)
@@ -157,8 +160,9 @@ deterministic sine/cosine interference over a `' ·:-=+*#%@'` density ramp, 210�
 
 `.mega` uses `-webkit-text-stroke` for the outlined second line.
 
-Sections in order: hero → stats (lead stat is 2x the others) → spoken exchange → two paths →
-five gates (connected by a rail) → two panels → closer. There are no tabs on the homepage.
+Sections in order: hero → stats (lead stat is 2x the others) → spoken exchange → three paths
+(using, building, architecture) → five gates, each linking to its architecture page → two panels → closer.
+`.stats` uses margin, not padding, for its gutter — padding shows the hairline background as grey flanks. There are no tabs on the homepage.
 
 ## Accessibility — non-negotiable
 
@@ -195,6 +199,8 @@ Keep that for any new diagram.
 - Don't use `autonumber` in sequence diagrams — the numbered circles collide with self-message labels.
 - Under 50rem the SVG gets `min-width: 34rem` and the frame scrolls; do not centre with flex
   (overflowing flex-centred content clips on the left).
+- `DiagramZoom` clones the rendered SVG into `.eg-zoom-body`, so theming selectors are written as
+  `:is(pre.mermaid, .eg-zoom-body) svg …`. Keep that form for new diagram rules.
 - Source text is excluded from Pagefind by the inline build hook; without it, search excerpts
   show raw `flowchart TD accTitle:` text.
 
