@@ -14,11 +14,11 @@ const port = process.env.PORT || 4000;
 
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Allows raw PCM audio buffer base64 payloads
+app.use(express.json());
 
 // Health check endpoint (§3 Probe target)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'echoguide-api-monolith' });
+  res.json({ status: 'okay', timestamp: new Date().toISOString(), service: 'echoguide-api-monolith' });
 });
 
 // Domain Monolith Modules (§8.1)

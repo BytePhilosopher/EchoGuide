@@ -1,0 +1,116 @@
+2026-09-24T18:26:29.095487Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies\\.turbo-cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\1.cookie"), AnchoredSystemPathBuf(".turbo"), AnchoredSystemPathBuf(".turbo\\cookies")}
+2026-09-24T18:26:29.096071Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:26:29.895767Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("node_modules")}
+2026-09-24T18:26:29.895886Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:26:29.948164Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
+2026-09-24T18:26:30.980429Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\447866af64953359-turbo.log.2026-09-24")}
+2026-09-24T18:26:30.980469Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:27:03.990825Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\tsconfig.json"), AnchoredSystemPathBuf("apps\\admin"), AnchoredSystemPathBuf("apps\\admin\\tsconfig.json")}
+2026-09-24T18:27:03.990873Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }, WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:27:05.121233Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\tsconfig.json"), AnchoredSystemPathBuf("apps\\admin\\next-env.d.ts"), AnchoredSystemPathBuf("apps\\docs"), AnchoredSystemPathBuf("apps\\admin"), AnchoredSystemPathBuf("apps\\docs\\next-env.d.ts"), AnchoredSystemPathBuf("apps\\docs\\tsconfig.json")}
+2026-09-24T18:27:05.121279Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }, WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:27:05.121348Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:05.121396Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:05.390370Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next"), AnchoredSystemPathBuf("apps\\admin"), AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:27:05.390414Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }, WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:27:05.839726Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:05.839795Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:05.840094Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs")}
+2026-09-24T18:27:05.840113Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:27:05.840172Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:10.980975Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next"), AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:27:10.981019Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }, WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:27:13.056075Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:13.056140Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:13.057005Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next"), AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:27:13.057029Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }, WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:27:13.057093Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:13.057133Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:14.783684Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:27:14.783733Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:27:15.268430Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:27:15.268799Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:27:15.268830Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:27:15.411144Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:29:17.980443Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\next.config.js")}
+2026-09-24T18:29:17.980488Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:29:24.287783Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:29:24.287816Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:29:24.500672Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:29:26.879623Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:29:26.879664Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:29:28.196644Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:29:28.197452Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:29:28.197475Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:29:28.197581Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:29:52.590146Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:29:52.590205Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:29:53.596152Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:31:19.691640Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\next.config.js"), AnchoredSystemPathBuf("apps\\docs")}
+2026-09-24T18:31:19.691674Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:31:19.959072Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\next.config.js")}
+2026-09-24T18:31:19.959107Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:31:19.959159Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:31:25.990185Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:31:25.990221Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:31:26.172787Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:31:28.287424Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:31:28.287457Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:31:29.045454Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:31:29.045966Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:31:29.046004Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:31:29.046064Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:33:17.367905Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies\\1.cookie"), AnchoredSystemPathBuf(".turbo\\cookies")}
+2026-09-24T18:33:17.367991Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:33:17.463235Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies"), AnchoredSystemPathBuf(".turbo"), AnchoredSystemPathBuf(".turbo\\cookies\\1.cookie")}
+2026-09-24T18:33:17.463306Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:33:17.560593Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies\\.turbo-cookie")}
+2026-09-24T18:33:17.560736Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:33:17.797518Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
+2026-09-24T18:33:18.553647Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\447866af64953359-turbo.log.2026-09-24")}
+2026-09-24T18:33:18.553682Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:33:25.666123Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next"), AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:33:25.666155Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }, WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:33:28.164627Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:33:28.164665Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:33:30.697768Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:33:30.698537Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next"), AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:33:30.698558Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }, WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:33:30.845725Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:33:30.845768Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:33:35.166916Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:33:35.166960Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:33:35.427873Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:35:44.361369Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\mobile\\package.json")}
+2026-09-24T18:35:44.361607Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/mobile"), path: AnchoredSystemPathBuf("apps\\mobile") }}))
+2026-09-24T18:36:15.459904Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("package.json")}
+2026-09-24T18:36:15.459936Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All)
+2026-09-24T18:37:31.466411Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\next.config.js")}
+2026-09-24T18:37:31.466439Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:37:37.161719Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:37:37.161793Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:37:37.320669Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:37:39.354577Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:37:39.354690Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:37:39.679471Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:37:39.679699Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:37:39.679726Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:37:39.679774Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:37:51.252549Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\admin\\.next")}
+2026-09-24T18:37:51.252583Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/admin"), path: AnchoredSystemPathBuf("apps\\admin") }}))
+2026-09-24T18:37:51.704404Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:38:08.155959Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\next.config.js")}
+2026-09-24T18:38:08.156010Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:38:15.364801Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:38:15.364822Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:38:15.453555Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:38:17.068081Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:38:17.068112Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:38:17.311165Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:38:17.311375Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\docs\\.next")}
+2026-09-24T18:38:17.311399Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@echoguide/docs"), path: AnchoredSystemPathBuf("apps\\docs") }}))
+2026-09-24T18:38:17.311447Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-09-24T18:45:13.008287Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("package-lock.json")}
+2026-09-24T18:45:13.011530Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-09-24T18:46:30.056449Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("package-lock.json")}
+2026-09-24T18:46:30.056487Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
