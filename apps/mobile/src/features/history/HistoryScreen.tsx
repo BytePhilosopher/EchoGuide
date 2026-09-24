@@ -1,188 +1,83 @@
-import React, { useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Theme } from '../../design/theme';
-import { Card, StatusBadge, IconCircle, PrimaryButton, SectionHeader } from '../../design/SharedComponents';
-import { useAppState, CommandOutcome } from '../../state/AppStateContext';
+import { VoicePipelineBridge, CommandOutcomeEvent } from '../../native/VoicePipelineBridge';
 
-/* ─── Stage Timing Mini Bar ───────────────────────────────────── */
-const TimingBar: React.FC<{ timing?: CommandOutcome['stageTiming']; totalMs: number }> = ({
-  timing,
-  totalMs,
-}) => {
-  if (!timing) return null;
-  const stt = timing.sttMs || 0;
-  const llm = timing.llmMs || 0;
-  const exec = timing.execMs || 0;
-  const total = stt + llm + exec || 1;
+const mockInitialHistory: CommandOutcomeEvent[] = [
+  { id: '1', timestamp: '2026-09-24 20:14:10', outcome: 'ACCEPTED', durationMs: 1420 },
+  { id: '2', timestamp: '2026-09-24 19:48:45', outcome: 'CONFIRMED', durationMs: 2350 },
+  { id: '3', timestamp: '2026-09-24 18:05:02', outcome: 'REJECTED', durationMs: 650 },
+];
 
-  return (
-    <View style={timingStyles.container}>
-      <View style={timingStyles.barRow}>
-        {stt > 0 && (
-          <View style={[timingStyles.segment, { flex: stt / total, backgroundColor: Theme.colors.info }]} />
-        )}
-        {llm > 0 && (
-          <View style={[timingStyles.segment, { flex: llm / total, backgroundColor: Theme.colors.accent }]} />
-        )}
-        {exec > 0 && (
-          <View style={[timingStyles.segment, { flex: exec / total, backgroundColor: Theme.colors.success }]} />
-        )}
-      </View>
-      <View style={timingStyles.legend}>
-        {stt > 0 && <Text style={[timingStyles.legendText, { color: Theme.colors.info }]}>STT {stt}ms</Text>}
-        {llm > 0 && <Text style={[timingStyles.legendText, { color: Theme.colors.accent }]}>LLM {llm}ms</Text>}
-        {exec > 0 && <Text style={[timingStyles.legendText, { color: Theme.colors.success }]}>Exec {exec}ms</Text>}
-      </View>
-    </View>
-  );
-};
-
-const timingStyles = StyleSheet.create({
-  container: { marginTop: Theme.spacing.sm },
-  barRow: {
-    flexDirection: 'row',
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-    backgroundColor: Theme.colors.borderSubtle,
-  },
-  segment: { minWidth: 4 },
-  legend: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  legendText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    fontWeight: '600',
-  },
-});
-
-/* ─── Outcome Icon Map ────────────────────────────────────────── */
-const outcomeIcon: Record<string, { icon: string; color: string; bg: string }> = {
-  done: { icon: '✓', color: Theme.colors.success, bg: Theme.colors.successMuted },
-  failed: { icon: '✗', color: Theme.colors.danger, bg: Theme.colors.dangerMuted },
-  rejected: { icon: '⊘', color: Theme.colors.danger, bg: Theme.colors.dangerMuted },
-  blocked: { icon: '⚠', color: Theme.colors.warning, bg: Theme.colors.warningMuted },
-  cancelled: { icon: '◌', color: Theme.colors.warning, bg: Theme.colors.warningMuted },
-};
-
-/* ─── Empty State ─────────────────────────────────────────────── */
-const EmptyState: React.FC = () => (
-  <View style={styles.emptyContainer}>
-    <IconCircle icon="📋" color={Theme.colors.textMuted} bgColor={Theme.colors.surfaceElevated} size={72} />
-    <Text style={styles.emptyTitle}>No Commands Yet</Text>
-    <Text style={styles.emptyDesc}>
-      Your command outcomes will appear here after you start using voice commands.
-    </Text>
-    <Text style={styles.emptyDescSub}>
-      የድምጽ ትዕዛዝ ውጤቶች እዚህ ይታያሉ።
-    </Text>
-  </View>
-);
-
-/* ─── History Item Card ───────────────────────────────────────── */
-const HistoryItem: React.FC<{ item: CommandOutcome }> = ({ item }) => {
-  const iconData = outcomeIcon[item.outcome] || outcomeIcon.cancelled;
-  const timeStr = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dateStr = new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-  return (
-    <Card style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={styles.itemLeft}>
-          <IconCircle icon={iconData.icon} color={iconData.color} bgColor={iconData.bg} size={40} />
-          <View style={styles.itemInfo}>
-            <StatusBadge status={item.outcome as any} />
-            <Text style={styles.timeText}>{dateStr} at {timeStr}</Text>
-          </View>
-        </View>
-        <View style={styles.itemRight}>
-          <Text style={styles.durationValue}>{(item.durationMs / 1000).toFixed(1)}s</Text>
-          <Text style={styles.durationLabel}>total</Text>
-        </View>
-      </View>
-      <TimingBar timing={item.stageTiming} totalMs={item.durationMs} />
-    </Card>
-  );
-};
-
-/* ─── Main Screen ─────────────────────────────────────────────── */
 export const HistoryScreen: React.FC = () => {
-  const { state, dispatch } = useAppState();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [history, setHistory] = useState<CommandOutcomeEvent[]>(mockInitialHistory);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    // Simulate a network fetch delay
-    setTimeout(() => setRefreshing(false), 800);
+  useEffect(() => {
+    // Subscribe to live pipeline outcomes via TurboModule (§5.4)
+    // Rule §5.4: Events drop (never queue) when no UI is listening
+    const unsubscribe = VoicePipelineBridge.subscribeToOutcomes((event) => {
+      setHistory((prev) => [event, ...prev]);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  // Stats
-  const totalCommands = state.commandHistory.length;
-  const successCount = state.commandHistory.filter((c) => c.outcome === 'done').length;
-  const successRate = totalCommands > 0 ? Math.round((successCount / totalCommands) * 100) : 0;
-  const avgDuration =
-    totalCommands > 0
-      ? Math.round(state.commandHistory.reduce((s, c) => s + c.durationMs, 0) / totalCommands)
-      : 0;
+  const renderBadge = (outcome: CommandOutcomeEvent['outcome']) => {
+    switch (outcome) {
+      case 'ACCEPTED':
+        return (
+          <View style={[styles.badge, { backgroundColor: 'rgba(35, 134, 54, 0.2)', borderColor: Theme.colors.primary }]}>
+            <Text style={[styles.badgeText, { color: Theme.colors.primaryHover }]}>✓ ACCEPTED</Text>
+          </View>
+        );
+      case 'CONFIRMED':
+        return (
+          <View style={[styles.badge, { backgroundColor: 'rgba(31, 111, 235, 0.2)', borderColor: Theme.colors.secondary }]}>
+            <Text style={[styles.badgeText, { color: Theme.colors.secondary }]}>🛡️ CONFIRMED</Text>
+          </View>
+        );
+      case 'REJECTED':
+        return (
+          <View style={[styles.badge, { backgroundColor: 'rgba(248, 81, 73, 0.2)', borderColor: Theme.colors.danger }]}>
+            <Text style={[styles.badgeText, { color: Theme.colors.danger }]}>✕ REJECTED</Text>
+          </View>
+        );
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.header}>Command History</Text>
-        <Text style={styles.headerSub}>የትዕዛዝ ታሪክ</Text>
-      </View>
-
-      {/* Privacy Banner — always visible */}
-      <View style={styles.privacyBanner}>
-        <Text style={styles.privacyIcon}>🔒</Text>
-        <Text style={styles.privacyText}>
-          Privacy: No transcripts or spoken text are stored. Only outcomes and timing data are shown.
+    <View style={styles.container} accessibilityLabel="Command Outcome History Screen">
+      <View style={styles.headerBox}>
+        <Text style={styles.header} accessibilityRole="header">
+          Command Outcomes
+        </Text>
+        <Text style={styles.privacyNote} accessibilityRole="summary">
+          🔒 Privacy Mode Active (§9.1): Zero spoken transcripts or audio files are persisted or transmitted across the bridge.
         </Text>
       </View>
 
-      {/* Quick Stats */}
-      {totalCommands > 0 && (
-        <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{totalCommands}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </Card>
-          <Card style={[styles.statCard, { borderColor: Theme.colors.success }]}>
-            <Text style={[styles.statValue, { color: Theme.colors.success }]}>{successRate}%</Text>
-            <Text style={styles.statLabel}>Success</Text>
-          </Card>
-          <Card style={[styles.statCard, { borderColor: Theme.colors.info }]}>
-            <Text style={[styles.statValue, { color: Theme.colors.info }]}>{(avgDuration / 1000).toFixed(1)}s</Text>
-            <Text style={styles.statLabel}>Avg Time</Text>
-          </Card>
-        </View>
-      )}
-
-      {/* Command List */}
       <FlatList
-        data={state.commandHistory}
+        data={history}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <HistoryItem item={item} />}
-        ListEmptyComponent={<EmptyState />}
-        contentContainerStyle={totalCommands === 0 ? { flex: 1 } : { paddingBottom: Theme.spacing.xxl }}
-        style={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Theme.colors.primary}
-            colors={[Theme.colors.primary]}
-            progressBackgroundColor={Theme.colors.cardBackground}
-          />
-        }
+        contentContainerStyle={styles.listContent}
+        accessibilityLabel="List of Past Command Outcomes"
+        renderItem={({ item }) => (
+          <View
+            style={styles.itemCard}
+            accessibilityLabel={`Command outcome ${item.outcome}, duration ${item.durationMs} milliseconds, executed at ${item.timestamp}`}
+          >
+            <View style={styles.leftCol}>
+              {renderBadge(item.outcome)}
+              <Text style={styles.metaText}>{item.timestamp}</Text>
+            </View>
+            <View style={styles.rightCol}>
+              <Text style={styles.durationText}>{item.durationMs}ms</Text>
+              <Text style={styles.latencyLabel}>pipeline latency</Text>
+            </View>
+          </View>
+        )}
       />
     </View>
   );
@@ -191,123 +86,72 @@ export const HistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
     backgroundColor: Theme.colors.background,
   },
-  headerSection: {
-    padding: Theme.spacing.md,
-    paddingTop: Theme.spacing.xxl,
+  headerBox: {
+    marginBottom: 16,
   },
   header: {
-    fontSize: Theme.typography.fontSizeHeader,
+    fontSize: 26,
+    fontWeight: 'bold',
     color: Theme.colors.text,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    marginBottom: 6,
   },
-  headerSub: {
-    fontSize: Theme.typography.fontSizeSmall,
+  privacyNote: {
+    fontSize: 12,
     color: Theme.colors.textMuted,
+    lineHeight: 18,
+    backgroundColor: Theme.colors.cardBackground,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
   },
-  privacyBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceElevated,
-    marginHorizontal: Theme.spacing.md,
-    padding: Theme.spacing.sm,
-    borderRadius: Theme.borderRadius.sm,
-    marginBottom: Theme.spacing.sm,
-  },
-  privacyIcon: {
-    fontSize: 14,
-    marginRight: Theme.spacing.sm,
-  },
-  privacyText: {
-    flex: 1,
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    lineHeight: 14,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Theme.spacing.md,
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Theme.spacing.sm,
-  },
-  statValue: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '800',
-    color: Theme.colors.text,
-  },
-  statLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  list: {
-    paddingHorizontal: Theme.spacing.md,
+  listContent: {
+    paddingBottom: 24,
   },
   itemCard: {
-    marginBottom: Theme.spacing.sm,
-  },
-  itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: Theme.colors.cardBackground,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    marginBottom: 12,
   },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  leftCol: {
     flex: 1,
   },
-  itemInfo: {
-    marginLeft: Theme.spacing.sm,
-  },
-  itemRight: {
+  rightCol: {
     alignItems: 'flex-end',
   },
-  timeText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    marginTop: 4,
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 8,
   },
-  durationValue: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '800',
+  badgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  metaText: {
+    fontSize: 12,
+    color: Theme.colors.textMuted,
+  },
+  durationText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Theme.colors.text,
   },
-  durationLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
+  latencyLabel: {
+    fontSize: 10,
     color: Theme.colors.textMuted,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Theme.spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '700',
-    color: Theme.colors.text,
-    marginTop: Theme.spacing.md,
-  },
-  emptyDesc: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.textMuted,
-    textAlign: 'center',
-    marginTop: Theme.spacing.sm,
-    lineHeight: 20,
-  },
-  emptyDescSub: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    textAlign: 'center',
-    marginTop: Theme.spacing.xs,
-    fontStyle: 'italic',
+    marginTop: 2,
   },
 });

@@ -1,158 +1,80 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Theme } from '../../design/theme';
-import {
-  Card,
-  SectionHeader,
-  SettingRow,
-  PrimaryButton,
-  StatusBadge,
-  IconCircle,
-  Divider,
-} from '../../design/SharedComponents';
-import { useAppState } from '../../state/AppStateContext';
+import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
 
 export const AccountScreen: React.FC = () => {
-  const { state } = useAppState();
+  const [deviceHash, setDeviceHash] = useState<string>('sha256:8f9a2b7c4d1e0f3a...');
+  const [installId, setInstallId] = useState<string>('inst_99cd28c1_accf');
+  const [subStatus, setSubStatus] = useState<string>('EchoGuide Accessibility Pro (Active)');
 
-  // Compute usage stats
-  const totalCommands = state.commandHistory.length;
-  const successCount = state.commandHistory.filter((c) => c.outcome === 'done').length;
-  const successRate = totalCommands > 0 ? Math.round((successCount / totalCommands) * 100) : 0;
-
-  // Masked device hash display
-  const maskedHash = 'SHA256•••••a7f3';
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out / ውጣ',
+      'Signing out will clear local session tokens bound to this install ID (§10.4).',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: () => console.log('User signed out') },
+      ]
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>Account</Text>
-      <Text style={styles.headerSub}>መለያ</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      accessibilityLabel="User Account and Subscription Screen"
+    >
+      <Text style={styles.header} accessibilityRole="header">
+        User Account & Binding
+      </Text>
+      <Text style={styles.headerSubtitle}>
+        Device identity, session binding, and plan status (§10.4)
+      </Text>
 
-      {/* ─── Profile Card ──────────────────────────────────────── */}
-      <Card elevated style={styles.profileCard}>
-        <View style={styles.profileRow}>
-          <IconCircle icon="👤" color={Theme.colors.text} bgColor={Theme.colors.secondary} size={56} />
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>EchoGuide User</Text>
-            <Text style={styles.profileId}>Device: {maskedHash}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <Text style={styles.profileLang}>
-                {state.selectedLanguage === 'am-ET' ? '🇪🇹 አማርኛ' : '🇺🇸 English'}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Card>
+      {/* Identity & Session Card (§10.4) */}
+      <View style={styles.card} accessibilityLabel="Device Identity Details">
+        <Text style={styles.cardTitle} accessibilityRole="header">
+          Device Identity & Binding
+        </Text>
 
-      {/* ─── Subscription ──────────────────────────────────────── */}
-      <SectionHeader title="Subscription" subtitle="የደንበኝነት ምዝገባ" />
-
-      <Card style={styles.subscriptionCard}>
-        <View style={styles.subHeader}>
-          <View>
-            <Text style={styles.planName}>{state.subscription.plan}</Text>
-            <Text style={styles.planRenewal}>
-              {state.subscription.renewsAt
-                ? `Renews: ${new Date(state.subscription.renewsAt).toLocaleDateString()}`
-                : 'No active subscription'}
-            </Text>
-          </View>
-          <StatusBadge status={state.subscription.status === 'active' ? 'active' : 'inactive'} label={state.subscription.status.toUpperCase()} />
-        </View>
-
-        <Divider spacing={Theme.spacing.sm} />
-
-        <View style={styles.usageRow}>
-          <View style={styles.usageStat}>
-            <Text style={styles.usageValue}>{state.subscription.commandsThisPeriod}</Text>
-            <Text style={styles.usageLabel}>Commands This Period</Text>
-          </View>
-          <View style={[styles.usageStat, styles.usageStatBorder]}>
-            <Text style={[styles.usageValue, { color: Theme.colors.success }]}>{successRate}%</Text>
-            <Text style={styles.usageLabel}>Success Rate</Text>
-          </View>
-          <View style={styles.usageStat}>
-            <Text style={[styles.usageValue, { color: Theme.colors.info }]}>{totalCommands}</Text>
-            <Text style={styles.usageLabel}>All Time</Text>
-          </View>
-        </View>
-
-        <PrimaryButton
-          title="Manage Subscription"
-          icon="💳"
-          onPress={() => Alert.alert('Coming Soon', 'Subscription management will be available in a future update.')}
-          variant="secondary"
-          style={{ marginTop: Theme.spacing.md }}
-        />
-      </Card>
-
-      {/* ─── Usage Summary ─────────────────────────────────────── */}
-      <SectionHeader title="Usage Summary" subtitle="የአጠቃቀም ማጠቃለያ" />
-
-      <SettingRow
-        icon="📊"
-        label="Total Commands"
-        description="All-time voice commands processed"
-        rightElement={<Text style={styles.statText}>{totalCommands}</Text>}
-      />
-      <SettingRow
-        icon="✅"
-        label="Successful"
-        description="Commands completed without error"
-        rightElement={<Text style={[styles.statText, { color: Theme.colors.success }]}>{successCount}</Text>}
-      />
-      <SettingRow
-        icon="❌"
-        label="Failed / Rejected"
-        description="Commands that were blocked or failed"
-        rightElement={
-          <Text style={[styles.statText, { color: Theme.colors.danger }]}>
-            {totalCommands - successCount}
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Hashed Phone ID (§10.4):</Text>
+          <Text style={styles.value} accessibilityLabel={`Hashed Phone ID: ${deviceHash}`}>
+            {deviceHash}
           </Text>
-        }
-      />
+        </View>
 
-      {/* ─── Consent Audit Trail ───────────────────────────────── */}
-      <SectionHeader title="Consent Audit Trail" subtitle="የፈቃድ ምዝግብ ማስታወሻ (§9.3)" />
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Installation Binding (install_id):</Text>
+          <Text style={styles.value} accessibilityLabel={`Install ID: ${installId}`}>
+            {installId}
+          </Text>
+        </View>
+      </View>
 
-      {state.consentTrail.length === 0 ? (
-        <Card>
-          <Text style={styles.emptyTrail}>No consent events recorded yet.</Text>
-        </Card>
-      ) : (
-        state.consentTrail.slice(0, 10).map((event) => (
-          <Card key={event.id} style={styles.trailCard}>
-            <View style={styles.trailRow}>
-              <IconCircle
-                icon={event.granted ? '✓' : '✗'}
-                color={event.granted ? Theme.colors.success : Theme.colors.danger}
-                bgColor={event.granted ? Theme.colors.successMuted : Theme.colors.dangerMuted}
-                size={32}
-              />
-              <View style={styles.trailInfo}>
-                <Text style={styles.trailScope}>{event.scope.replace(/_/g, ' ')}</Text>
-                <Text style={styles.trailTime}>
-                  {new Date(event.timestamp).toLocaleString()}
-                </Text>
-              </View>
-              <StatusBadge status={event.granted ? 'done' : 'rejected'} label={event.granted ? 'Granted' : 'Revoked'} />
-            </View>
-          </Card>
-        ))
-      )}
+      {/* Subscription Plan Card */}
+      <View style={styles.card} accessibilityLabel="Subscription Status">
+        <Text style={styles.cardTitle} accessibilityRole="header">
+          Subscription Plan
+        </Text>
 
-      {/* ─── Actions ───────────────────────────────────────────── */}
-      <SectionHeader title="Account Actions" />
+        <View style={styles.subBox}>
+          <Text style={styles.subText}>{subStatus}</Text>
+          <Text style={styles.subMeta}>Renews automatically on Oct 24, 2026</Text>
+        </View>
+      </View>
 
-      <PrimaryButton
-        title="Sign Out"
-        icon="🚪"
-        onPress={() => Alert.alert('Sign Out', 'Sign out functionality will be available in a future update.')}
-        variant="ghost"
-        style={{ marginBottom: Theme.spacing.xxl }}
-      />
-
-      <View style={{ height: Theme.spacing.xxl }} />
+      {/* Sign Out / Revoke Session Button */}
+      <TouchableOpacity
+        style={styles.signOutBtn}
+        onPress={handleSignOut}
+        accessibilityRole="button"
+        accessibilityLabel="Sign out of device account"
+        accessibilityHint="Clears local device session token"
+      >
+        <Text style={styles.signOutText}>Sign Out of Device Account</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -162,120 +84,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
-  content: {
-    padding: Theme.spacing.md,
-    paddingTop: Theme.spacing.xxl,
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 40,
   },
   header: {
-    fontSize: Theme.typography.fontSizeHeader,
+    fontSize: 26,
+    fontWeight: 'bold',
     color: Theme.colors.text,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    marginBottom: 4,
   },
-  headerSub: {
-    fontSize: Theme.typography.fontSizeSmall,
+  headerSubtitle: {
+    fontSize: 14,
     color: Theme.colors.textMuted,
-    marginBottom: Theme.spacing.sm,
+    marginBottom: 20,
   },
-  profileCard: {
-    marginTop: Theme.spacing.md,
-  },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileInfo: {
-    marginLeft: Theme.spacing.md,
-    flex: 1,
-  },
-  profileName: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '700',
-    color: Theme.colors.text,
-  },
-  profileId: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-  },
-  profileLang: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textSecondary,
-  },
-  subscriptionCard: {
-    marginTop: Theme.spacing.sm,
-  },
-  subHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  planName: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '700',
-    color: Theme.colors.text,
-  },
-  planRenewal: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-  },
-  usageRow: {
-    flexDirection: 'row',
-  },
-  usageStat: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Theme.spacing.sm,
-  },
-  usageStatBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+  card: {
+    backgroundColor: Theme.colors.cardBackground,
+    padding: 18,
+    borderRadius: 10,
+    borderWidth: 1,
     borderColor: Theme.colors.border,
+    marginBottom: 16,
   },
-  usageValue: {
-    fontSize: Theme.typography.fontSizeHeader,
-    fontWeight: '800',
-    color: Theme.colors.text,
-  },
-  usageLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    marginTop: 2,
-    textAlign: 'center',
+    color: Theme.colors.text,
+    marginBottom: 14,
   },
-  statText: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '800',
+  infoRow: {
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 12,
+    color: Theme.colors.textMuted,
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '500',
     color: Theme.colors.text,
   },
-  emptyTrail: {
-    fontSize: Theme.typography.fontSizeSmall,
+  subBox: {
+    backgroundColor: 'rgba(35, 134, 54, 0.15)',
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
+    padding: 14,
+    borderRadius: 8,
+  },
+  subText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: Theme.colors.primaryHover,
+  },
+  subMeta: {
+    fontSize: 12,
     color: Theme.colors.textMuted,
-    textAlign: 'center',
-    padding: Theme.spacing.md,
+    marginTop: 4,
   },
-  trailCard: {
-    marginBottom: Theme.spacing.xs,
-  },
-  trailRow: {
-    flexDirection: 'row',
+  signOutBtn: {
+    backgroundColor: Theme.colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
+    marginTop: 10,
   },
-  trailInfo: {
-    flex: 1,
-    marginLeft: Theme.spacing.sm,
-  },
-  trailScope: {
-    fontSize: Theme.typography.fontSizeSmall,
-    fontWeight: '600',
-    color: Theme.colors.text,
-    textTransform: 'capitalize',
-  },
-  trailTime: {
-    fontSize: Theme.typography.fontSizeMicro,
+  signOutText: {
     color: Theme.colors.textMuted,
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

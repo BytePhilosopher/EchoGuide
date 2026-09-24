@@ -1,141 +1,234 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Theme } from '../design/theme';
-import { useAppState } from '../state/AppStateContext';
-
-// Screens
 import { OnboardingScreen } from '../features/onboarding/OnboardingScreen';
-import { HomeScreen } from '../features/home/HomeScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { AccountScreen } from '../features/account/AccountScreen';
+import { VoicePipelineBridge } from '../native/VoicePipelineBridge';
 
-/* ─── Navigation Theme ────────────────────────────────────────── */
-const navTheme = {
-  ...DefaultTheme,
-  dark: true,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: Theme.colors.primary,
-    background: Theme.colors.background,
-    card: Theme.colors.cardBackground,
-    text: Theme.colors.text,
-    border: Theme.colors.border,
-    notification: Theme.colors.danger,
-  },
-};
+type TabName = 'Status' | 'History' | 'Settings' | 'Account';
 
-/* ─── Tab Icon Component ──────────────────────────────────────── */
-const TabIcon: React.FC<{ icon: string; label: string; focused: boolean }> = ({
-  icon,
-  label,
-  focused,
-}) => (
-  <View style={tabStyles.iconContainer}>
-    <Text style={[tabStyles.icon, focused && tabStyles.iconFocused]}>{icon}</Text>
-    <Text style={[tabStyles.label, focused && tabStyles.labelFocused]}>{label}</Text>
-  </View>
-);
-
-const tabStyles = StyleSheet.create({
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 4,
-  },
-  icon: {
-    fontSize: 22,
-    opacity: 0.5,
-  },
-  iconFocused: {
-    opacity: 1,
-  },
-  label: {
-    fontSize: 10,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  labelFocused: {
-    color: Theme.colors.primary,
-  },
-});
-
-/* ─── Stacks & Tabs ───────────────────────────────────────────── */
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-const MainTabs: React.FC = () => (
-  <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarStyle: {
-        backgroundColor: Theme.colors.cardBackground,
-        borderTopColor: Theme.colors.border,
-        borderTopWidth: 1,
-        height: 64,
-        paddingBottom: 8,
-      },
-      tabBarShowLabel: false,
-      tabBarActiveTintColor: Theme.colors.primary,
-      tabBarInactiveTintColor: Theme.colors.textMuted,
-    }}
-  >
-    <Tab.Screen
-      name="Home"
-      component={HomeScreen}
-      options={{
-        tabBarIcon: ({ focused }) => <TabIcon icon="🏠" label="Home" focused={focused} />,
-      }}
-    />
-    <Tab.Screen
-      name="History"
-      component={HistoryScreen}
-      options={{
-        tabBarIcon: ({ focused }) => <TabIcon icon="📋" label="History" focused={focused} />,
-      }}
-    />
-    <Tab.Screen
-      name="Settings"
-      component={SettingsScreen}
-      options={{
-        tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" label="Settings" focused={focused} />,
-      }}
-    />
-    <Tab.Screen
-      name="Account"
-      component={AccountScreen}
-      options={{
-        tabBarIcon: ({ focused }) => <TabIcon icon="👤" label="Account" focused={focused} />,
-      }}
-    />
-  </Tab.Navigator>
-);
-
-/* ─── Root Navigator ──────────────────────────────────────────── */
 export const AppNavigator: React.FC = () => {
-  const { state } = useAppState();
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<TabName>('Status');
+  const [isWakeWordActive, setIsWakeWordActive] = useState<boolean>(true);
+
+  if (!isOnboarded) {
+    return <OnboardingScreen onComplete={() => setIsOnboarded(true)} />;
+  }
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Status':
+        return (
+          <View style={styles.statusContainer} accessibilityLabel="Pipeline Service Status Screen">
+            <View style={styles.statusHeader}>
+              <Text style={styles.statusTitle} accessibilityRole="header">
+                EchoGuide Pipeline Status
+              </Text>
+              <Text style={styles.statusSub}>
+                Bilingual voice control running in Kotlin Native (§5.1)
+              </Text>
+            </View>
+
+            <View style={styles.statusCard}>
+              <Text style={styles.cardHeader} accessibilityRole="header">
+                Native Service Indicator
+              </Text>
+              <View style={styles.indicatorRow}>
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: isWakeWordActive ? Theme.colors.primaryHover : Theme.colors.danger },
+                  ]}
+                />
+                <Text style={styles.indicatorText}>
+                  {isWakeWordActive ? 'Wake-Word Engine Listening (16 kHz PCM)' : 'Voice Engine Stopped'}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  if (isWakeWordActive) {
+                    VoicePipelineBridge.stopListening();
+                    setIsWakeWordActive(false);
+                  } else {
+                    VoicePipelineBridge.startListening();
+                    setIsWakeWordActive(true);
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={isWakeWordActive ? 'Pause Wake-Word Engine' : 'Resume Wake-Word Engine'}
+              >
+                <Text style={styles.actionButtonText}>
+                  {isWakeWordActive ? 'Pause Listening' : 'Start Listening'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      case 'History':
+        return <HistoryScreen />;
+      case 'Settings':
+        return <SettingsScreen />;
+      case 'Account':
+        return <AccountScreen />;
+    }
+  };
 
   return (
-    <NavigationContainer theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!state.onboardingComplete ? (
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{ animationTypeForReplace: 'push' }}
-          />
-        ) : (
-          <Stack.Screen
-            name="Main"
-            component={MainTabs}
-            options={{ animationTypeForReplace: 'pop' }}
-          />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.mainContainer}>
+        {renderTabContent()}
+
+        {/* Bottom Navigation Bar */}
+        <View style={styles.tabBar} accessibilityLabel="Main Navigation Bar">
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'Status' && styles.tabItemActive]}
+            onPress={() => setActiveTab('Status')}
+            accessibilityRole="tab"
+            accessibilityLabel="Pipeline Status Tab"
+            accessibilityState={{ selected: activeTab === 'Status' }}
+          >
+            <Text style={[styles.tabLabel, activeTab === 'Status' && styles.tabLabelActive]}>
+              Status
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'History' && styles.tabItemActive]}
+            onPress={() => setActiveTab('History')}
+            accessibilityRole="tab"
+            accessibilityLabel="Outcomes History Tab"
+            accessibilityState={{ selected: activeTab === 'History' }}
+          >
+            <Text style={[styles.tabLabel, activeTab === 'History' && styles.tabLabelActive]}>
+              History
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'Settings' && styles.tabItemActive]}
+            onPress={() => setActiveTab('Settings')}
+            accessibilityRole="tab"
+            accessibilityLabel="Accessibility Settings Tab"
+            accessibilityState={{ selected: activeTab === 'Settings' }}
+          >
+            <Text style={[styles.tabLabel, activeTab === 'Settings' && styles.tabLabelActive]}>
+              Settings
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'Account' && styles.tabItemActive]}
+            onPress={() => setActiveTab('Account')}
+            accessibilityRole="tab"
+            accessibilityLabel="User Account Tab"
+            accessibilityState={{ selected: activeTab === 'Account' }}
+          >
+            <Text style={[styles.tabLabel, activeTab === 'Account' && styles.tabLabelActive]}>
+              Account
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+  },
+  mainContainer: {
+    flex: 1,
+    justify: 'space-between',
+  },
+  statusContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  statusHeader: {
+    marginBottom: 20,
+  },
+  statusTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: Theme.colors.text,
+    marginBottom: 4,
+  },
+  statusSub: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+  },
+  statusCard: {
+    backgroundColor: Theme.colors.cardBackground,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  cardHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Theme.colors.text,
+    marginBottom: 14,
+  },
+  indicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  indicatorText: {
+    fontSize: 14,
+    color: Theme.colors.text,
+    fontWeight: '500',
+  },
+  actionButton: {
+    backgroundColor: Theme.colors.secondary,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    height: 64,
+    backgroundColor: Theme.colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border,
+    alignItems: 'center',
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+  },
+  tabItemActive: {
+    borderTopWidth: 2,
+    borderTopColor: Theme.colors.primary,
+  },
+  tabLabel: {
+    fontSize: 13,
+    color: Theme.colors.textMuted,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    color: Theme.colors.primaryHover,
+    fontWeight: 'bold',
+  },
+});
