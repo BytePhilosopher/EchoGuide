@@ -15,6 +15,13 @@
       "when": 1790178280557,
       "tag": "0001_command_events_partitions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790260000000,
+      "tag": "0002_billing_usage",
+      "breakpoints": true
     }
   ]
 }

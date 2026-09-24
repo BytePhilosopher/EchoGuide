@@ -1,9 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet, Switch, TurboModuleRegistry } from 'react-native';
 import { Theme } from '../../design/theme';
+import type { Spec } from '../../native/VoicePipelineBridgeSpec';
 
 export const SettingsScreen: React.FC = () => {
   const [dataRetention, setDataRetention] = React.useState(false);
+
+  const onRetentionChange = (value: boolean) => {
+    setDataRetention(value);
+    if (!value) {
+      const bridge = TurboModuleRegistry.get<Spec>('VoicePipelineBridge');
+      void bridge?.revokeConsent();
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -16,7 +25,7 @@ export const SettingsScreen: React.FC = () => {
         </View>
         <Switch
           value={dataRetention}
-          onValueChange={setDataRetention}
+          onValueChange={onRetentionChange}
           trackColor={{ false: '#30363d', true: Theme.colors.primary }}
         />
       </View>
