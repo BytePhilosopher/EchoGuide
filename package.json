@@ -4,7 +4,9 @@
   "private": true,
   "description": "Voice Accessibility Assistant — Monorepo (Expo SDK 57, Node API, Next.js Admin, Astro Docs)",
   "workspaces": [
-    "apps/*",
+    "apps/admin",
+    "apps/docs",
+    "apps/api",
     "packages/*"
   ],
   "scripts": {
@@ -12,10 +14,14 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "start:mobile": "npm run start --workspace=@echoguide/mobile",
+    "start:mobile": "cd apps/mobile && npx expo start",
     "start:api": "npm run dev --workspace=@echoguide/api",
     "start:admin": "npm run dev --workspace=@echoguide/admin",
     "start:docs": "npm run dev --workspace=@echoguide/docs"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "turbo": "^1.13.0",
