@@ -2,6 +2,8 @@
 
 Documentation site for EchoGuide, built with Astro and Starlight.
 
+**Live demo:** https://echo-guide-docs.vercel.app/
+
 ## Commands
 
 Run from the repo root:
