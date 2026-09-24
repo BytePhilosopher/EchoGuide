@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   Switch,
   ViewStyle,
-  TextStyle,
 } from 'react-native';
 import { Theme } from './theme';
 
 /* ─── Card ────────────────────────────────────────────────────── */
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
   elevated?: boolean;
 }
 export const Card: React.FC<CardProps> = ({ children, style, elevated }) => (
@@ -32,10 +31,18 @@ export const Card: React.FC<CardProps> = ({ children, style, elevated }) => (
 interface SectionHeaderProps {
   title: string;
   subtitle?: string;
+  badge?: string;
 }
-export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, subtitle }) => (
+export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, subtitle, badge }) => (
   <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.sectionTitleRow}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {badge && (
+        <View style={styles.sectionBadge}>
+          <Text style={styles.sectionBadgeText}>{badge}</Text>
+        </View>
+      )}
+    </View>
     {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
   </View>
 );
@@ -60,10 +67,10 @@ export const SettingRow: React.FC<SettingRowProps> = ({
   <View style={styles.settingRow}>
     {icon && (
       <View style={styles.settingIcon}>
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <Text style={{ fontSize: 18 }}>{icon}</Text>
       </View>
     )}
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingRight: Theme.spacing.xs }}>
       <Text style={styles.settingLabel}>{label}</Text>
       {description && <Text style={styles.settingDescription}>{description}</Text>}
     </View>
@@ -72,7 +79,7 @@ export const SettingRow: React.FC<SettingRowProps> = ({
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: Theme.colors.border, true: Theme.colors.primary }}
-        thumbColor={value ? Theme.colors.text : Theme.colors.textMuted}
+        thumbColor={value ? '#FFFFFF' : Theme.colors.textMuted}
       />
     ) : (
       rightElement
@@ -85,9 +92,9 @@ interface PrimaryButtonProps {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'glow';
   icon?: string;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
 }
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   title,
@@ -102,12 +109,21 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     secondary: Theme.colors.secondary,
     danger: Theme.colors.danger,
     ghost: 'transparent',
+    glow: Theme.colors.primary,
+  };
+  const textMap: Record<string, string> = {
+    primary: '#080C14',
+    secondary: '#FFFFFF',
+    danger: '#FFFFFF',
+    ghost: Theme.colors.textSecondary,
+    glow: '#080C14',
   };
   const borderMap: Record<string, string> = {
     primary: Theme.colors.primary,
     secondary: Theme.colors.secondary,
     danger: Theme.colors.danger,
     ghost: Theme.colors.border,
+    glow: Theme.colors.primary,
   };
 
   return (
@@ -118,6 +134,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
           backgroundColor: disabled ? Theme.colors.borderSubtle : bgMap[variant],
           borderColor: disabled ? Theme.colors.border : borderMap[variant],
         },
+        variant === 'glow' && !disabled && Theme.shadow.glow,
         style,
       ]}
       onPress={onPress}
@@ -129,7 +146,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       <Text
         style={[
           styles.primaryButtonText,
-          disabled && { color: Theme.colors.textMuted },
+          { color: disabled ? Theme.colors.textMuted : textMap[variant] },
         ]}
       >
         {title}
@@ -144,20 +161,20 @@ interface StatusBadgeProps {
   label?: string;
 }
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
-  const colorMap: Record<string, { bg: string; text: string }> = {
-    done: { bg: Theme.colors.successMuted, text: Theme.colors.success },
-    confirmed: { bg: Theme.colors.successMuted, text: Theme.colors.success },
-    active: { bg: Theme.colors.successMuted, text: Theme.colors.success },
-    failed: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger },
-    rejected: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger },
-    blocked: { bg: Theme.colors.warningMuted, text: Theme.colors.warning },
-    cancelled: { bg: Theme.colors.warningMuted, text: Theme.colors.warning },
-    inactive: { bg: Theme.colors.borderSubtle, text: Theme.colors.textMuted },
+  const colorMap: Record<string, { bg: string; text: string; border: string }> = {
+    done: { bg: Theme.colors.successMuted, text: Theme.colors.success, border: 'rgba(16, 185, 129, 0.4)' },
+    confirmed: { bg: Theme.colors.primaryMuted, text: Theme.colors.primary, border: 'rgba(0, 229, 255, 0.4)' },
+    active: { bg: Theme.colors.successMuted, text: Theme.colors.success, border: 'rgba(16, 185, 129, 0.4)' },
+    failed: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger, border: 'rgba(239, 68, 68, 0.4)' },
+    rejected: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger, border: 'rgba(239, 68, 68, 0.4)' },
+    blocked: { bg: Theme.colors.warningMuted, text: Theme.colors.warning, border: 'rgba(245, 158, 11, 0.4)' },
+    cancelled: { bg: Theme.colors.warningMuted, text: Theme.colors.warning, border: 'rgba(245, 158, 11, 0.4)' },
+    inactive: { bg: Theme.colors.borderSubtle, text: Theme.colors.textMuted, border: Theme.colors.border },
   };
   const colors = colorMap[status] || colorMap.inactive;
 
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }]}>
+    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
       <Text style={[styles.badgeText, { color: colors.text }]}>
         {label || status.toUpperCase()}
       </Text>
@@ -176,7 +193,7 @@ export const IconCircle: React.FC<IconCircleProps> = ({
   icon,
   color,
   bgColor,
-  size = 44,
+  size = 48,
 }) => (
   <View
     style={[
@@ -214,6 +231,7 @@ export const Divider: React.FC<{ spacing?: number }> = ({ spacing = Theme.spacin
       height: 1,
       backgroundColor: Theme.colors.border,
       marginVertical: spacing,
+      opacity: 0.7,
     }}
   />
 );
@@ -230,14 +248,30 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: Theme.spacing.sm,
-    marginTop: Theme.spacing.lg,
+    marginTop: Theme.spacing.md,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: Theme.typography.fontSizeSmall,
-    fontWeight: '700',
-    color: Theme.colors.textMuted,
+    fontSize: Theme.typography.fontSizeCaption,
+    fontWeight: '800',
+    color: Theme.colors.primary,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
+  },
+  sectionBadge: {
+    backgroundColor: Theme.colors.primaryMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Theme.borderRadius.xs,
+  },
+  sectionBadgeText: {
+    fontSize: Theme.typography.fontSizeMicro,
+    color: Theme.colors.primary,
+    fontWeight: '700',
   },
   sectionSubtitle: {
     fontSize: Theme.typography.fontSizeCaption,
@@ -247,7 +281,7 @@ const styles = StyleSheet.create({
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: Theme.colors.surfaceElevated,
     padding: Theme.spacing.md,
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
@@ -255,23 +289,26 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.sm,
   },
   settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: Theme.colors.surfaceElevated,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Theme.colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderSubtle,
   },
   settingLabel: {
     fontSize: Theme.typography.fontSizeBody,
     color: Theme.colors.text,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   settingDescription: {
     fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
     marginTop: 2,
+    lineHeight: 16,
   },
   primaryButton: {
     flexDirection: 'row',
@@ -284,18 +321,19 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: Theme.typography.fontSizeBody,
-    fontWeight: '700',
-    color: Theme.colors.text,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
   },
   badgeText: {
     fontSize: Theme.typography.fontSizeMicro,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   iconCircle: {
     alignItems: 'center',
@@ -308,9 +346,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
   },
   dotActive: {
     backgroundColor: Theme.colors.primary,
@@ -318,5 +355,6 @@ const styles = StyleSheet.create({
   },
   dotInactive: {
     backgroundColor: Theme.colors.border,
+    width: 6,
   },
 });

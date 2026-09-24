@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Theme } from '../../design/theme';
+import { Card, StatusBadge, Divider } from '../../design/SharedComponents';
 import { VoicePipelineBridge, CommandOutcomeEvent } from '../../native/VoicePipelineBridge';
 
 const mockInitialHistory: CommandOutcomeEvent[] = [
   { id: '1', timestamp: '2026-09-24 20:14:10', outcome: 'ACCEPTED', durationMs: 1420 },
   { id: '2', timestamp: '2026-09-24 19:48:45', outcome: 'CONFIRMED', durationMs: 2350 },
   { id: '3', timestamp: '2026-09-24 18:05:02', outcome: 'REJECTED', durationMs: 650 },
+  { id: '4', timestamp: '2026-09-24 16:22:18', outcome: 'ACCEPTED', durationMs: 1100 },
 ];
 
 export const HistoryScreen: React.FC = () => {
   const [history, setHistory] = useState<CommandOutcomeEvent[]>(mockInitialHistory);
+  const [filter, setFilter] = useState<'ALL' | 'ACCEPTED' | 'CONFIRMED' | 'REJECTED'>('ALL');
 
   useEffect(() => {
-    // Subscribe to live pipeline outcomes via TurboModule (§5.4)
-    // Rule §5.4: Events drop (never queue) when no UI is listening
     const unsubscribe = VoicePipelineBridge.subscribeToOutcomes((event) => {
       setHistory((prev) => [event, ...prev]);
     });
@@ -24,60 +25,88 @@ export const HistoryScreen: React.FC = () => {
     };
   }, []);
 
+  const filteredHistory = history.filter((item) => {
+    if (filter === 'ALL') return true;
+    return item.outcome === filter;
+  });
+
   const renderBadge = (outcome: CommandOutcomeEvent['outcome']) => {
     switch (outcome) {
       case 'ACCEPTED':
-        return (
-          <View style={[styles.badge, { backgroundColor: 'rgba(35, 134, 54, 0.2)', borderColor: Theme.colors.primary }]}>
-            <Text style={[styles.badgeText, { color: Theme.colors.primaryHover }]}>✓ ACCEPTED</Text>
-          </View>
-        );
+        return <StatusBadge status="done" label="✓ ACCEPTED" />;
       case 'CONFIRMED':
-        return (
-          <View style={[styles.badge, { backgroundColor: 'rgba(31, 111, 235, 0.2)', borderColor: Theme.colors.secondary }]}>
-            <Text style={[styles.badgeText, { color: Theme.colors.secondary }]}>🛡️ CONFIRMED</Text>
-          </View>
-        );
+        return <StatusBadge status="confirmed" label="🛡️ CONFIRMED" />;
       case 'REJECTED':
-        return (
-          <View style={[styles.badge, { backgroundColor: 'rgba(248, 81, 73, 0.2)', borderColor: Theme.colors.danger }]}>
-            <Text style={[styles.badgeText, { color: Theme.colors.danger }]}>✕ REJECTED</Text>
-          </View>
-        );
+        return <StatusBadge status="rejected" label="✕ REJECTED" />;
     }
   };
 
   return (
     <View style={styles.container} accessibilityLabel="Command Outcome History Screen">
+      {/* Header */}
       <View style={styles.headerBox}>
         <Text style={styles.header} accessibilityRole="header">
           Command Outcomes
         </Text>
-        <Text style={styles.privacyNote} accessibilityRole="summary">
-          🔒 Privacy Mode Active (§9.1): Zero spoken transcripts or audio files are persisted or transmitted across the bridge.
+        <Text style={styles.subHeader}>
+          Real-time execution log from native voice bridge (§5.4)
         </Text>
-      </View>
 
-      <FlatList
-        data={history}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        accessibilityLabel="List of Past Command Outcomes"
-        renderItem={({ item }) => (
-          <View
-            style={styles.itemCard}
-            accessibilityLabel={`Command outcome ${item.outcome}, duration ${item.durationMs} milliseconds, executed at ${item.timestamp}`}
-          >
-            <View style={styles.leftCol}>
-              {renderBadge(item.outcome)}
-              <Text style={styles.metaText}>{item.timestamp}</Text>
-            </View>
-            <View style={styles.rightCol}>
-              <Text style={styles.durationText}>{item.durationMs}ms</Text>
-              <Text style={styles.latencyLabel}>pipeline latency</Text>
+        <Card style={styles.privacyNoteCard}>
+          <View style={styles.privacyNoteRow}>
+            <Text style={{ fontSize: 18, marginRight: 8 }}>🔒</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.privacyTitle}>Zero-Persistence Privacy (§9.1)</Text>
+              <Text style={styles.privacyDesc}>
+                No spoken transcripts or raw audio recordings are stored locally or transmitted.
+              </Text>
             </View>
           </View>
+        </Card>
+      </View>
+
+      {/* Filter Chips */}
+      <View style={styles.filterRow}>
+        {(['ALL', 'ACCEPTED', 'CONFIRMED', 'REJECTED'] as const).map((f) => (
+          <TouchableOpacity
+            key={f}
+            style={[styles.filterChip, filter === f && styles.filterChipActive]}
+            onPress={() => setFilter(f)}
+          >
+            <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
+              {f}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* History List */}
+      <FlatList
+        data={filteredHistory}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <Card style={styles.itemCard}>
+            <View style={styles.cardHeader}>
+              {renderBadge(item.outcome)}
+              <Text style={styles.durationText}>{item.durationMs}ms</Text>
+            </View>
+
+            <Divider spacing={Theme.spacing.xs} />
+
+            <View style={styles.cardFooter}>
+              <Text style={styles.metaText}>📅 {item.timestamp}</Text>
+              <Text style={styles.latencyLabel}>Pipeline Latency</Text>
+            </View>
+          </Card>
         )}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>📭</Text>
+            <Text style={styles.emptyText}>No outcomes match the selected filter</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -86,72 +115,107 @@ export const HistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: Theme.spacing.md,
     backgroundColor: Theme.colors.background,
   },
   headerBox: {
-    marginBottom: 16,
+    marginBottom: Theme.spacing.sm,
   },
   header: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.fontSizeHero,
+    fontWeight: '900',
     color: Theme.colors.text,
-    marginBottom: 6,
+    letterSpacing: -0.5,
   },
-  privacyNote: {
-    fontSize: 12,
+  subHeader: {
+    fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
-    lineHeight: 18,
+    marginTop: 2,
+    marginBottom: Theme.spacing.md,
+  },
+  privacyNoteCard: {
+    backgroundColor: Theme.colors.surfaceElevated,
+    borderColor: Theme.colors.border,
+    padding: Theme.spacing.sm,
+  },
+  privacyNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  privacyTitle: {
+    fontSize: Theme.typography.fontSizeSmall,
+    fontWeight: '700',
+    color: Theme.colors.primary,
+  },
+  privacyDesc: {
+    fontSize: Theme.typography.fontSizeMicro,
+    color: Theme.colors.textMuted,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: Theme.spacing.md,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Theme.borderRadius.full,
     backgroundColor: Theme.colors.cardBackground,
-    padding: 10,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: Theme.colors.border,
   },
+  filterChipActive: {
+    backgroundColor: Theme.colors.primaryMuted,
+    borderColor: Theme.colors.primary,
+  },
+  filterChipText: {
+    fontSize: Theme.typography.fontSizeMicro,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: Theme.colors.primary,
+  },
   listContent: {
-    paddingBottom: 24,
+    paddingBottom: Theme.spacing.xxl,
   },
   itemCard: {
+    marginBottom: Theme.spacing.sm,
+    backgroundColor: Theme.colors.cardBackground,
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Theme.colors.cardBackground,
-    padding: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    marginBottom: 12,
   },
-  leftCol: {
-    flex: 1,
-  },
-  rightCol: {
-    alignItems: 'flex-end',
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  metaText: {
-    fontSize: 12,
-    color: Theme.colors.textMuted,
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
   },
   durationText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Theme.colors.text,
+    fontSize: Theme.typography.fontSizeBody,
+    fontWeight: '900',
+    color: Theme.colors.primary,
+  },
+  metaText: {
+    fontSize: Theme.typography.fontSizeMicro,
+    color: Theme.colors.textMuted,
   },
   latencyLabel: {
-    fontSize: 10,
+    fontSize: Theme.typography.fontSizeMicro,
     color: Theme.colors.textMuted,
-    marginTop: 2,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Theme.spacing.xxl,
+  },
+  emptyText: {
+    fontSize: Theme.typography.fontSizeSmall,
+    color: Theme.colors.textMuted,
   },
 });

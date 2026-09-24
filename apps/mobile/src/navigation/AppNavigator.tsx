@@ -1,74 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { Theme } from '../design/theme';
+import { HomeScreen } from '../features/home/HomeScreen';
 import { OnboardingScreen } from '../features/onboarding/OnboardingScreen';
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { AccountScreen } from '../features/account/AccountScreen';
-import { VoicePipelineBridge } from '../native/VoicePipelineBridge';
+import { useAppState } from '../state/AppStateContext';
 
 type TabName = 'Status' | 'History' | 'Settings' | 'Account';
 
 export const AppNavigator: React.FC = () => {
+  const { state } = useAppState();
   const [isOnboarded, setIsOnboarded] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<TabName>('Status');
-  const [isWakeWordActive, setIsWakeWordActive] = useState<boolean>(true);
 
-  if (!isOnboarded) {
+  if (!isOnboarded && !state.onboardingComplete) {
     return <OnboardingScreen onComplete={() => setIsOnboarded(true)} />;
   }
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Status':
-        return (
-          <View style={styles.statusContainer} accessibilityLabel="Pipeline Service Status Screen">
-            <View style={styles.statusHeader}>
-              <Text style={styles.statusTitle} accessibilityRole="header">
-                EchoGuide Pipeline Status
-              </Text>
-              <Text style={styles.statusSub}>
-                Bilingual voice control running in Kotlin Native (§5.1)
-              </Text>
-            </View>
-
-            <View style={styles.statusCard}>
-              <Text style={styles.cardHeader} accessibilityRole="header">
-                Native Service Indicator
-              </Text>
-              <View style={styles.indicatorRow}>
-                <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: isWakeWordActive ? Theme.colors.primaryHover : Theme.colors.danger },
-                  ]}
-                />
-                <Text style={styles.indicatorText}>
-                  {isWakeWordActive ? 'Wake-Word Engine Listening (16 kHz PCM)' : 'Voice Engine Stopped'}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => {
-                  if (isWakeWordActive) {
-                    VoicePipelineBridge.stopListening();
-                    setIsWakeWordActive(false);
-                  } else {
-                    VoicePipelineBridge.startListening();
-                    setIsWakeWordActive(true);
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={isWakeWordActive ? 'Pause Wake-Word Engine' : 'Resume Wake-Word Engine'}
-              >
-                <Text style={styles.actionButtonText}>
-                  {isWakeWordActive ? 'Pause Listening' : 'Start Listening'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
+        return <HomeScreen />;
       case 'History':
         return <HistoryScreen />;
       case 'Settings':
@@ -78,60 +32,42 @@ export const AppNavigator: React.FC = () => {
     }
   };
 
+  const tabs: { key: TabName; label: string; icon: string }[] = [
+    { key: 'Status', label: 'Hub', icon: '⚡' },
+    { key: 'History', label: 'Outcomes', icon: '📜' },
+    { key: 'Settings', label: 'Settings', icon: '⚙️' },
+    { key: 'Account', label: 'Account', icon: '👤' },
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
         {renderTabContent()}
 
-        {/* Bottom Navigation Bar */}
+        {/* Futuristic Bottom Navigation Bar */}
         <View style={styles.tabBar} accessibilityLabel="Main Navigation Bar">
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === 'Status' && styles.tabItemActive]}
-            onPress={() => setActiveTab('Status')}
-            accessibilityRole="tab"
-            accessibilityLabel="Pipeline Status Tab"
-            accessibilityState={{ selected: activeTab === 'Status' }}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'Status' && styles.tabLabelActive]}>
-              Status
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === 'History' && styles.tabItemActive]}
-            onPress={() => setActiveTab('History')}
-            accessibilityRole="tab"
-            accessibilityLabel="Outcomes History Tab"
-            accessibilityState={{ selected: activeTab === 'History' }}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'History' && styles.tabLabelActive]}>
-              History
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === 'Settings' && styles.tabItemActive]}
-            onPress={() => setActiveTab('Settings')}
-            accessibilityRole="tab"
-            accessibilityLabel="Accessibility Settings Tab"
-            accessibilityState={{ selected: activeTab === 'Settings' }}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'Settings' && styles.tabLabelActive]}>
-              Settings
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === 'Account' && styles.tabItemActive]}
-            onPress={() => setActiveTab('Account')}
-            accessibilityRole="tab"
-            accessibilityLabel="User Account Tab"
-            accessibilityState={{ selected: activeTab === 'Account' }}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'Account' && styles.tabLabelActive]}>
-              Account
-            </Text>
-          </TouchableOpacity>
+          {tabs.map((t) => {
+            const isActive = activeTab === t.key;
+            return (
+              <TouchableOpacity
+                key={t.key}
+                style={[styles.tabItem, isActive && styles.tabItemActive]}
+                onPress={() => setActiveTab(t.key)}
+                accessibilityRole="tab"
+                accessibilityLabel={`${t.label} Tab`}
+                accessibilityState={{ selected: isActive }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.tabIconContainer, isActive && styles.tabIconContainerActive]}>
+                  <Text style={{ fontSize: 18, opacity: isActive ? 1 : 0.6 }}>{t.icon}</Text>
+                </View>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {t.label}
+                </Text>
+                {isActive && <View style={styles.activeGlowIndicator} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </SafeAreaView>
@@ -142,93 +78,59 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   mainContainer: {
     flex: 1,
-    justify: 'space-between',
-  },
-  statusContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  statusHeader: {
-    marginBottom: 20,
-  },
-  statusTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: Theme.colors.text,
-    marginBottom: 4,
-  },
-  statusSub: {
-    fontSize: 14,
-    color: Theme.colors.textMuted,
-  },
-  statusCard: {
-    backgroundColor: Theme.colors.cardBackground,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  cardHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Theme.colors.text,
-    marginBottom: 14,
-  },
-  indicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  indicatorText: {
-    fontSize: 14,
-    color: Theme.colors.text,
-    fontWeight: '500',
-  },
-  actionButton: {
-    backgroundColor: Theme.colors.secondary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    justifyContent: 'space-between',
   },
   tabBar: {
     flexDirection: 'row',
-    height: 64,
+    height: 72,
     backgroundColor: Theme.colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border,
     alignItems: 'center',
+    paddingHorizontal: Theme.spacing.xs,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
+    position: 'relative',
   },
   tabItemActive: {
-    borderTopWidth: 2,
-    borderTopColor: Theme.colors.primary,
+    backgroundColor: 'rgba(0, 229, 255, 0.03)',
+  },
+  tabIconContainer: {
+    marginBottom: 2,
+  },
+  tabIconContainerActive: {
+    transform: [{ translateY: -2 }],
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: Theme.typography.fontSizeMicro,
     color: Theme.colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   tabLabelActive: {
-    color: Theme.colors.primaryHover,
-    fontWeight: 'bold',
+    color: Theme.colors.primary,
+    fontWeight: '800',
+  },
+  activeGlowIndicator: {
+    position: 'absolute',
+    top: 0,
+    width: 32,
+    height: 3,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: 2,
+    ...Theme.shadow.glow,
   },
 });

@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Theme } from '../../design/theme';
+import { Card, PrimaryButton, StatusBadge } from '../../design/SharedComponents';
 import { VoicePipelineBridge, ServiceState } from '../../native/VoicePipelineBridge';
 
 interface OnboardingScreenProps {
@@ -57,10 +58,16 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       accessibilityLabel="Onboarding Setup Screen"
+      showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerBox}>
+        <View style={styles.badgeRow}>
+          <View style={styles.logoBadge}>
+            <Text style={{ fontSize: 24 }}>🎙️</Text>
+          </View>
+        </View>
         <Text style={styles.title} accessibilityRole="header">
-          EchoGuide Accessibility
+          Welcome to EchoGuide
         </Text>
         <Text style={styles.subtitle}>
           Bilingual Voice Control for Android • ድምጽ መቆጣጠሪያ
@@ -68,104 +75,90 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       </View>
 
       {/* Language Selection Card (§1, §5.3) */}
-      <View style={styles.card} accessibilityLabel="Language Choice Container">
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          1. Choose Primary Language / ቋንቋ ይምረጡ
-        </Text>
+      <Card style={styles.card} accessibilityLabel="Language Choice Container">
+        <Text style={styles.stepTitle}>Step 1. Choose Primary Language</Text>
         <Text style={styles.cardSubtitle}>
-          Transcripts & TTS will default to your selected language.
+          Transcripts and Text-to-Speech will default to your selection.
         </Text>
 
         <TouchableOpacity
           style={[styles.langButton, selectedLang === 'am-ET' && styles.langButtonActive]}
           onPress={() => handleLanguageSelect('am-ET')}
-          accessibilityRole="button"
-          accessibilityLabel="Select Amharic Language, Addis AI Engine"
-          accessibilityHint="Sets primary language to Amharic using Addis AI STT and TTS"
-          accessibilityState={{ selected: selectedLang === 'am-ET' }}
+          activeOpacity={0.8}
         >
-          <Text style={styles.langTitle}>አማርኛ (Amharic)</Text>
-          <Text style={styles.langDesc}>Addis AI Engine • 3% WER • Cloud STT & TTS</Text>
+          <Text style={{ fontSize: 22, marginRight: 12 }}>🇪🇹</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.langTitle}>አማርኛ (Amharic)</Text>
+            <Text style={styles.langDesc}>Addis AI Cloud STT Engine • 3% WER</Text>
+          </View>
+          {selectedLang === 'am-ET' && <Text style={styles.checkIcon}>✓</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.langButton, selectedLang === 'en-US' && styles.langButtonActive]}
           onPress={() => handleLanguageSelect('en-US')}
-          accessibilityRole="button"
-          accessibilityLabel="Select English US Language"
-          accessibilityHint="Sets primary language to English using Android On-Device TTS"
-          accessibilityState={{ selected: selectedLang === 'en-US' }}
+          activeOpacity={0.8}
         >
-          <Text style={styles.langTitle}>English (US)</Text>
-          <Text style={styles.langDesc}>On-Device Android Engine • Near-zero latency</Text>
+          <Text style={{ fontSize: 22, marginRight: 12 }}>🇺🇸</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.langTitle}>English (US)</Text>
+            <Text style={styles.langDesc}>On-Device Android Engine • Ultra low latency</Text>
+          </View>
+          {selectedLang === 'en-US' && <Text style={styles.checkIcon}>✓</Text>}
         </TouchableOpacity>
-      </View>
+      </Card>
 
       {/* Consent & Privacy Card (§9.3, §10.1) */}
-      <View style={styles.card} accessibilityLabel="Privacy and Consent Container">
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          2. Privacy & Voice Consent / የግላዊነት ፈቃድ
-        </Text>
+      <Card style={styles.card} accessibilityLabel="Privacy and Consent Container">
+        <Text style={styles.stepTitle}>Step 2. Privacy & Voice Consent</Text>
         <Text style={styles.cardBody}>
           EchoGuide processes audio buffers exclusively to execute spoken commands.
-          By default, no raw audio or transcripts are stored on our servers (§9.1).
+          By default, zero audio recordings or spoken transcripts are stored (§9.1).
         </Text>
 
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel} accessibilityLabel="Grant Voice Data Processing Consent">
+          <Text style={styles.switchLabel}>
             Grant Voice Data Processing Consent
           </Text>
           <Switch
             value={consentGranted}
             onValueChange={setConsentGranted}
-            trackColor={{ false: '#30363d', true: Theme.colors.primary }}
-            accessibilityRole="switch"
-            accessibilityLabel="Voice Data Processing Consent Switch"
-            accessibilityState={{ checked: consentGranted }}
+            trackColor={{ false: Theme.colors.border, true: Theme.colors.primary }}
+            thumbColor={consentGranted ? '#FFFFFF' : Theme.colors.textMuted}
           />
         </View>
-      </View>
+      </Card>
 
       {/* Accessibility Service Status Card (§D1, §5.3) */}
-      <View style={styles.card} accessibilityLabel="Accessibility Service Status Container">
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          3. Android Accessibility Service
-        </Text>
+      <Card style={styles.card} accessibilityLabel="Accessibility Service Status Container">
+        <Text style={styles.stepTitle}>Step 3. Android Accessibility Service</Text>
         <Text style={styles.cardBody}>
-          EchoGuide requires Android AccessibilityService permissions to perform gestures
-          and read view trees across installed applications.
+          EchoGuide requires AccessibilityService permissions to perform tap gestures, scroll views, and assist navigation.
         </Text>
 
         <View style={styles.statusBox}>
-          <Text style={styles.statusText}>
-            Service Status:{' '}
-            <Text
-              style={{
-                color: serviceState.isAccessibilityEnabled
-                  ? Theme.colors.primaryHover
-                  : Theme.colors.warning,
-                fontWeight: 'bold',
-              }}
-            >
-              {serviceState.isAccessibilityEnabled ? 'ENABLED (Active)' : 'DISABLED (Setup Required)'}
-            </Text>
+          <StatusBadge
+            status={serviceState.isAccessibilityEnabled ? 'active' : 'inactive'}
+            label={serviceState.isAccessibilityEnabled ? 'SERVICE ACTIVE' : 'SETUP REQUIRED'}
+          />
+          <Text style={styles.statusNote}>
+            {serviceState.isAccessibilityEnabled
+              ? 'Kotlin Native Accessibility Service is connected.'
+              : 'Will prompt for Android Settings permission.'}
           </Text>
         </View>
-      </View>
+      </Card>
 
       {/* Finish Button */}
-      <TouchableOpacity
-        style={[styles.primaryButton, (!consentGranted || isSubmitting) && styles.disabledButton]}
-        onPress={handleFinishOnboarding}
-        disabled={!consentGranted || isSubmitting}
-        accessibilityRole="button"
-        accessibilityLabel="Complete Setup and Launch Assistant"
-        accessibilityHint="Saves preferences and activates the EchoGuide voice pipeline"
-      >
-        <Text style={styles.primaryButtonText}>
-          {isSubmitting ? 'Configuring...' : 'Complete Setup & Continue'}
-        </Text>
-      </TouchableOpacity>
+      <View style={{ marginTop: Theme.spacing.md, marginBottom: Theme.spacing.lg }}>
+        <PrimaryButton
+          title={isSubmitting ? 'Configuring Assistant...' : 'Complete Setup & Launch'}
+          onPress={handleFinishOnboarding}
+          variant="glow"
+          disabled={!consentGranted || isSubmitting}
+          icon="🚀"
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -176,106 +169,116 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   contentContainer: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: Theme.spacing.md,
+    paddingTop: Theme.spacing.xl,
+    paddingBottom: Theme.spacing.xxl,
   },
   headerBox: {
-    marginBottom: 24,
-    marginTop: 10,
+    marginBottom: Theme.spacing.lg,
+    alignItems: 'center',
+  },
+  badgeRow: {
+    marginBottom: Theme.spacing.sm,
+  },
+  logoBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Theme.colors.primaryMuted,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Theme.shadow.glow,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Theme.colors.primary,
-    marginBottom: 6,
+    fontSize: Theme.typography.fontSizeDisplay,
+    fontWeight: '900',
+    color: Theme.colors.text,
+    letterSpacing: -0.5,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: Theme.typography.fontSizeSmall,
     color: Theme.colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
   },
   card: {
     backgroundColor: Theme.colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    padding: 18,
-    marginBottom: 20,
+    marginBottom: Theme.spacing.md,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Theme.colors.text,
-    marginBottom: 6,
+  stepTitle: {
+    fontSize: Theme.typography.fontSizeSubheader,
+    fontWeight: '800',
+    color: Theme.colors.primary,
+    marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
-    marginBottom: 16,
+    marginBottom: Theme.spacing.md,
   },
   cardBody: {
-    fontSize: 14,
+    fontSize: Theme.typography.fontSizeSmall,
     color: Theme.colors.textMuted,
     lineHeight: 20,
-    marginBottom: 14,
+    marginBottom: Theme.spacing.md,
   },
   langButton: {
-    padding: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    marginBottom: 12,
-    backgroundColor: Theme.colors.background,
+    marginBottom: Theme.spacing.xs,
+    backgroundColor: Theme.colors.surfaceElevated,
   },
   langButtonActive: {
     borderColor: Theme.colors.primary,
-    backgroundColor: 'rgba(35, 134, 54, 0.15)',
+    backgroundColor: Theme.colors.primaryMuted,
+    ...Theme.shadow.glow,
   },
   langTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: Theme.typography.fontSizeBody,
+    fontWeight: '700',
     color: Theme.colors.text,
-    marginBottom: 4,
   },
   langDesc: {
-    fontSize: 12,
+    fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
+    marginTop: 2,
+  },
+  checkIcon: {
+    color: Theme.colors.primary,
+    fontWeight: '900',
+    fontSize: 18,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: Theme.spacing.xs,
   },
   switchLabel: {
-    fontSize: 14,
+    fontSize: Theme.typography.fontSizeSmall,
     color: Theme.colors.text,
     flex: 1,
+    fontWeight: '600',
     paddingRight: 10,
   },
   statusBox: {
-    backgroundColor: Theme.colors.background,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Theme.colors.surfaceElevated,
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
     borderColor: Theme.colors.border,
+    alignItems: 'flex-start',
   },
-  statusText: {
-    fontSize: 13,
-    color: Theme.colors.text,
-  },
-  primaryButton: {
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  statusNote: {
+    fontSize: Theme.typography.fontSizeCaption,
+    color: Theme.colors.textMuted,
+    marginTop: Theme.spacing.xs,
   },
 });

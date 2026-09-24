@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Theme } from '../../design/theme';
-import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
+import { Card, SectionHeader, StatusBadge, PrimaryButton, Divider } from '../../design/SharedComponents';
 
 export const AccountScreen: React.FC = () => {
-  const [deviceHash, setDeviceHash] = useState<string>('sha256:8f9a2b7c4d1e0f3a...');
-  const [installId, setInstallId] = useState<string>('inst_99cd28c1_accf');
-  const [subStatus, setSubStatus] = useState<string>('EchoGuide Accessibility Pro (Active)');
+  const [deviceHash] = useState<string>('sha256:8f9a2b7c4d1e0f3a...');
+  const [installId] = useState<string>('inst_99cd28c1_accf');
+  const [subStatus] = useState<string>('EchoGuide Accessibility Pro');
 
   const handleSignOut = () => {
     Alert.alert(
@@ -24,57 +24,72 @@ export const AccountScreen: React.FC = () => {
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       accessibilityLabel="User Account and Subscription Screen"
+      showsVerticalScrollIndicator={false}
     >
       <Text style={styles.header} accessibilityRole="header">
-        User Account & Binding
+        Account & Identity
       </Text>
       <Text style={styles.headerSubtitle}>
         Device identity, session binding, and plan status (§10.4)
       </Text>
 
-      {/* Identity & Session Card (§10.4) */}
-      <View style={styles.card} accessibilityLabel="Device Identity Details">
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          Device Identity & Binding
-        </Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Hashed Phone ID (§10.4):</Text>
-          <Text style={styles.value} accessibilityLabel={`Hashed Phone ID: ${deviceHash}`}>
-            {deviceHash}
-          </Text>
+      {/* Subscription Card */}
+      <SectionHeader title="SUBSCRIPTION PLAN" badge="PRO §10" />
+      <Card elevated style={styles.subCard}>
+        <View style={styles.subHeaderRow}>
+          <View style={styles.planIcon}>
+            <Text style={{ fontSize: 24 }}>✨</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.planTitle}>{subStatus}</Text>
+            <Text style={styles.planMeta}>Renews automatically Oct 24, 2026</Text>
+          </View>
+          <StatusBadge status="active" label="ACTIVE" />
         </View>
+
+        <Divider spacing={Theme.spacing.sm} />
+
+        <View style={styles.subFeaturesRow}>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureCheck}>✓</Text>
+            <Text style={styles.featureText}>Unlimited Amharic STT</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Text style={styles.featureCheck}>✓</Text>
+            <Text style={styles.featureText}>Kotlin Native Engine</Text>
+          </View>
+        </View>
+      </Card>
+
+      {/* Device Identity & Session Card */}
+      <SectionHeader title="DEVICE IDENTITY" badge="HARDWARE BINDING §10.4" />
+      <Card style={styles.card}>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Hashed Phone Fingerprint (§10.4):</Text>
+          <View style={styles.hashChip}>
+            <Text style={styles.hashText}>{deviceHash}</Text>
+          </View>
+        </View>
+
+        <Divider spacing={Theme.spacing.xs} />
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Installation Binding (install_id):</Text>
-          <Text style={styles.value} accessibilityLabel={`Install ID: ${installId}`}>
-            {installId}
-          </Text>
+          <View style={styles.hashChip}>
+            <Text style={styles.hashText}>{installId}</Text>
+          </View>
         </View>
+      </Card>
+
+      {/* Sign Out Button */}
+      <View style={{ marginTop: Theme.spacing.lg }}>
+        <PrimaryButton
+          title="Sign Out of Device Session"
+          onPress={handleSignOut}
+          variant="ghost"
+          icon="🚪"
+        />
       </View>
-
-      {/* Subscription Plan Card */}
-      <View style={styles.card} accessibilityLabel="Subscription Status">
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          Subscription Plan
-        </Text>
-
-        <View style={styles.subBox}>
-          <Text style={styles.subText}>{subStatus}</Text>
-          <Text style={styles.subMeta}>Renews automatically on Oct 24, 2026</Text>
-        </View>
-      </View>
-
-      {/* Sign Out / Revoke Session Button */}
-      <TouchableOpacity
-        style={styles.signOutBtn}
-        onPress={handleSignOut}
-        accessibilityRole="button"
-        accessibilityLabel="Sign out of device account"
-        accessibilityHint="Clears local device session token"
-      >
-        <Text style={styles.signOutText}>Sign Out of Device Account</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -85,76 +100,94 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: Theme.spacing.md,
+    paddingBottom: Theme.spacing.xxl,
   },
   header: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: Theme.typography.fontSizeHero,
+    fontWeight: '900',
     color: Theme.colors.text,
-    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
-    marginBottom: 20,
+    marginBottom: Theme.spacing.xs,
   },
   card: {
     backgroundColor: Theme.colors.cardBackground,
-    padding: 18,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    marginBottom: 16,
+    marginBottom: Theme.spacing.md,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Theme.colors.text,
-    marginBottom: 14,
+  subCard: {
+    backgroundColor: Theme.colors.cardBackground,
+    borderColor: Theme.colors.primaryMuted,
+    marginBottom: Theme.spacing.md,
   },
-  infoRow: {
-    marginBottom: 12,
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  label: {
-    fontSize: 12,
-    color: Theme.colors.textMuted,
-    marginBottom: 2,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Theme.colors.text,
-  },
-  subBox: {
-    backgroundColor: 'rgba(35, 134, 54, 0.15)',
+  planIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Theme.spacing.sm,
     borderWidth: 1,
     borderColor: Theme.colors.primary,
-    padding: 14,
-    borderRadius: 8,
   },
-  subText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: Theme.colors.primaryHover,
+  planTitle: {
+    fontSize: Theme.typography.fontSizeSubheader,
+    fontWeight: '800',
+    color: Theme.colors.text,
   },
-  subMeta: {
-    fontSize: 12,
+  planMeta: {
+    fontSize: Theme.typography.fontSizeCaption,
     color: Theme.colors.textMuted,
+    marginTop: 2,
+  },
+  subFeaturesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 4,
   },
-  signOutBtn: {
-    backgroundColor: Theme.colors.cardBackground,
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  featureCheck: {
+    color: Theme.colors.primary,
+    fontWeight: '900',
+    marginRight: 6,
+  },
+  featureText: {
+    fontSize: Theme.typography.fontSizeMicro,
+    color: Theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  infoRow: {
+    paddingVertical: Theme.spacing.xs,
+  },
+  label: {
+    fontSize: Theme.typography.fontSizeCaption,
+    color: Theme.colors.textMuted,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  hashChip: {
+    backgroundColor: Theme.colors.surfaceElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Theme.borderRadius.sm,
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
   },
-  signOutText: {
-    color: Theme.colors.textMuted,
-    fontSize: 14,
+  hashText: {
+    fontSize: Theme.typography.fontSizeSmall,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: Theme.colors.primary,
     fontWeight: '600',
   },
 });
