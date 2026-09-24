@@ -119,6 +119,16 @@ export const subscriptions = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     status: text('status').notNull(),
     renewsAt: timestamp('renews_at', { withTimezone: true }).notNull(),
+    commandQuota: integer('command_quota').notNull().default(10000),
+    commandsUsed: integer('commands_used').notNull().default(0),
   },
-  (t) => [index('subscriptions_user_id_idx').on(t.userId)],
+  (t) => [
+    index('subscriptions_user_id_idx').on(t.userId),
+    check(
+      'subscriptions_status_check',
+      sql`${t.status} IN ('active', 'past_due', 'canceled', 'inactive')`,
+    ),
+    check('subscriptions_quota_check', sql`${t.commandQuota} >= 0`),
+    check('subscriptions_used_check', sql`${t.commandsUsed} >= 0`),
+  ],
 );

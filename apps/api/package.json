@@ -7,6 +7,7 @@
     "dev": "tsx watch src/app/server.ts",
     "build": "tsc",
     "start": "node dist/app/server.js",
+    "smoke": "tsx src/app/smoke.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:rollback": "tsx src/shared/database/rollback.ts"

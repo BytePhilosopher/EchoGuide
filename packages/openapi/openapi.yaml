@@ -26,6 +26,10 @@ tags:
     description: Append-only retention grants and data deletion.
   - name: telemetry
     description: Outcome and latency events. Never transcripts or audio.
+  - name: billing
+    description: Entitlement checks and usage counters.
+  - name: phrases
+    description: Pre-synthesised spoken lines. Closed set, refreshed on language change.
   - name: admin
     description: Support tooling. Every route requires a named permission.
 
@@ -135,6 +139,31 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /v1/consent/grants/current:
+    get:
+      tags: [consent]
+      operationId: getCurrentConsent
+      summary: Current consent state for a scope
+      description: Latest row per (user_id, scope). Missing rows are treated as not granted.
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: The current grant state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentCurrentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /v1/consent/user-data:
     delete:
       tags: [consent]
@@ -175,6 +204,43 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /v1/billing/entitlement:
+    get:
+      tags: [billing]
+      operationId: getEntitlement
+      summary: Current subscription entitlement and usage
+      responses:
+        '200':
+          description: The signed-in user's entitlement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entitlement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/phrases:
+    get:
+      tags: [phrases]
+      operationId: getPhrases
+      summary: Pre-synthesised phrase catalog for a language
+      security: []
+      parameters:
+        - name: language
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Phrase key to spoken line for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhraseCatalog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /v1/admin/users/{userId}:
     get:
@@ -471,6 +537,8 @@ components:
         speech_response_text:
           type: string
           description: Variable content to speak, when the reply is not a pre-synthesised phrase.
+        speak_code:
+          $ref: '#/components/schemas/PhraseKey'
 
     ConsentGrantRequest:
       type: object
@@ -495,6 +563,19 @@ components:
         granted:
           type: boolean
 
+    ConsentCurrentResponse:
+      type: object
+      required: [scope, granted]
+      properties:
+        scope:
+          type: string
+        granted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
     DeletionResponse:
       type: object
       required: [status, task_id]
@@ -513,13 +594,20 @@ components:
       type: object
       required: [outcome, duration_ms, stage_timings]
       description: Records that a command happened and how it went, never what was said.
+      additionalProperties: false
       properties:
+        request_id:
+          type: string
+          format: uuid
+          description: Client-generated request id. Also the command_events primary key.
         outcome:
           $ref: '#/components/schemas/CommandOutcome'
         duration_ms:
           type: integer
           minimum: 0
           description: End of speech to terminal state.
+        confidence:
+          type: number
         stage_timings:
           type: object
           description: Milliseconds per pipeline stage.
@@ -534,6 +622,47 @@ components:
         status:
           type: string
           enum: [buffered]
+
+    PhraseKey:
+      type: string
+      enum:
+        - ACK
+        - STILL_WORKING
+        - RETRY
+        - CONFIRM
+        - ERR_NETWORK
+        - ERR_TOO_SLOW
+        - ERR_REJECTED
+        - ERR_BILLING
+
+    PhraseCatalog:
+      type: object
+      required: [language, phrases]
+      properties:
+        language:
+          $ref: '#/components/schemas/Locale'
+        phrases:
+          type: object
+          additionalProperties:
+            type: string
+
+    Entitlement:
+      type: object
+      required: [status, renews_at, command_quota, commands_used]
+      properties:
+        status:
+          type: string
+          nullable: true
+        renews_at:
+          type: string
+          format: date-time
+          nullable: true
+        command_quota:
+          type: integer
+          nullable: true
+        commands_used:
+          type: integer
+          nullable: true
 
     AccountStatus:
       type: string

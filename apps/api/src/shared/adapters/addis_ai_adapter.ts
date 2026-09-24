@@ -30,15 +30,17 @@ export class AddisAIAdapter {
 
   async planActionSequence(transcript: string, screenContext: ScreenContext): Promise<unknown> {
     return {
-      model: "Addis-፩-አሌፍ",
+      plan_id: '11111111-1111-4111-8111-111111111111',
+      package_name: screenContext.current_package,
+      requires_user_confirmation: false,
       steps: [
         {
-          step_id: "step-1",
-          action_type: "TAP",
-          target_node_id: "com.whatsapp:id/send_button",
-          is_destructive: false
-        }
-      ]
+          step_id: '22222222-2222-4222-8222-222222222222',
+          action_type: 'TAP',
+          target_node_id: 'com.whatsapp:id/send_button',
+          is_destructive: false,
+        },
+      ],
     };
   }
 }

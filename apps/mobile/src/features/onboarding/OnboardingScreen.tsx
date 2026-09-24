@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Theme } from '../../design/theme';
+import { setPhraseLanguage } from '../../speech/phrases';
 
 export const OnboardingScreen: React.FC = () => {
   const [selectedLang, setSelectedLang] = useState<'am-ET' | 'en-US'>('am-ET');
@@ -26,7 +27,10 @@ export const OnboardingScreen: React.FC = () => {
 
         <TouchableOpacity
           style={[styles.langButton, selectedLang === 'am-ET' && styles.langButtonActive]}
-          onPress={() => setSelectedLang('am-ET')}
+          onPress={() => {
+            setSelectedLang('am-ET');
+            void setPhraseLanguage('am-ET');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Select Amharic Language"
         >
@@ -35,7 +39,10 @@ export const OnboardingScreen: React.FC = () => {
 
         <TouchableOpacity
           style={[styles.langButton, selectedLang === 'en-US' && styles.langButtonActive]}
-          onPress={() => setSelectedLang('en-US')}
+          onPress={() => {
+            setSelectedLang('en-US');
+            void setPhraseLanguage('en-US');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Select English Language"
         >
