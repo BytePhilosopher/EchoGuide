@@ -16,8 +16,10 @@ We write the API contract once, by hand, in `packages/openapi/openapi.yaml` (Ope
 Generated output is not committed; the YAML is the only file reviewed.
 
 ### Why YAML-first rather than Zod-first
-The original architecture drew Zod as the source that emits the spec. We flipped it because openapi-generator-cli (Kotlin) and redocly (docs) both prefer canonical OpenAPI 3.0 YAML, and keeping all 3 clients (especially Kotlin) in sync is easier when the OpenAPI spec is the root artifact.
+The original architecture drew Zod as the source that emits the YAML. We reversed it: the YAML is language-neutral, so the Kotlin pipeline reads the same contract as the TypeScript side without depending on a TypeScript file.
 
 ## Consequences
-- OK: Contract breaking changes fail all 3 client builds automatically
-- OK: No manual duplication of request/response types
+- **Positive**: Contract breaking changes fail client builds automatically at compile time.
+- **Positive**: One reviewable file for every contract change.
+- **Negative**: Schema generation step required in build pipeline. The Kotlin generator needs Java 11+.
+- **Negative**: Rules OpenAPI cannot express (such as the transcription confidence gate) stay as hand-written Zod in the backend module that owns them.

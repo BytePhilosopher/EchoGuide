@@ -1,0 +1,73 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+import SocialIcons from '@astrojs/starlight/components/SocialIcons.astro';
+import { getCollection } from 'astro:content';
+import Assistant from './assistant/Assistant';
+import DiagramZoom from './DiagramZoom.astro';
+
+const docs = await getCollection('docs');
+const routes = docs
+	.filter((entry) => entry.id !== '404')
+	.map((entry) => ({
+		path: `/${entry.id}`.replace(/\/index$/, '') || '/',
+		title: entry.data.title,
+		description: entry.data.description ?? '',
+	}))
+	.sort((a, b) => a.path.localeCompare(b.path));
+
+const sections = Astro.locals.starlightRoute.sidebar.flatMap((entry) => {
+	if (entry.type !== 'group') return [];
+	const first = entry.entries.find((item) => item.type === 'link');
+	return first?.type === 'link' ? [{ label: entry.label, href: first.href }] : [];
+});
+---
+
+<Default><slot /></Default>
+<footer class="eg-site-footer not-content">
+	<p class="eg-site-footer-brand">EchoGuide — voice access to any Android app, in Amharic and English.</p>
+	<nav aria-label="Footer">
+		<ul>
+			{sections.map((section) => <li><a href={section.href}>{section.label}</a></li>)}
+			<li><SocialIcons /></li>
+		</ul>
+	</nav>
+</footer>
+<DiagramZoom />
+<Assistant routes={routes} client:only="react" transition:persist="voxide-assistant" />
+
+<style>
+	.eg-site-footer {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem 2rem;
+		margin-block-start: 3rem;
+		padding-block-start: 1.5rem;
+		border-top: 1px solid var(--sl-color-hairline);
+		font-size: 0.82rem;
+		color: var(--eg-muted-fg);
+	}
+
+	.eg-site-footer-brand {
+		margin: 0;
+	}
+
+	.eg-site-footer ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 1.25rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.eg-site-footer a {
+		color: var(--eg-muted-fg);
+		text-decoration: none;
+	}
+
+	.eg-site-footer a:hover {
+		color: var(--eg-ember);
+	}
+</style>

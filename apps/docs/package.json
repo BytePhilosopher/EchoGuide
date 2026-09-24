@@ -2,19 +2,28 @@
   "name": "@echoguide/docs",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev -p 3002",
-    "build": "next build",
-    "start": "next start -p 3002"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "reference": "redocly bundle ../../packages/openapi/openapi.yaml --ext json --output public/api-reference/openapi.json",
+    "prebuild": "npm run reference",
+    "predev": "npm run reference"
   },
   "dependencies": {
-    "next": "^14.2.3",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.12.7",
-    "@types/react": "^18.3.1",
-    "typescript": "^5.4.5"
+    "@astrojs/react": "^6.0.6",
+    "@astrojs/starlight": "^0.42.2",
+    "@redocly/cli": "^2.54.2",
+    "@voxide/react": "^0.8.0",
+    "astro": "^7.2.10",
+    "astro-mermaid": "^2.1.0",
+    "cookie": "^2.0.1",
+    "mermaid": "^11.17.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sharp": "^0.35.3"
   }
 }

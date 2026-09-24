@@ -1,34 +1,10 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
+import 'dotenv/config';
+import { createApp } from './app';
 
-import { authModule } from '../modules/auth/auth.module';
-import { usersModule } from '../modules/users/users.module';
-import { commandsModule } from '../modules/commands/commands.module';
-import { consentModule } from '../modules/consent/consent.module';
-import { telemetryModule } from '../modules/telemetry/telemetry.module';
-import { adminModule } from '../modules/admin/admin.module';
+const app = createApp();
+const port = Number(process.env.PORT) || 4000;
+const host = process.env.HOST || '0.0.0.0';
 
-const app = express();
-const port = process.env.PORT || 4000;
-
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-// Health check endpoint (§3 Probe target)
-app.get('/health', (req, res) => {
-  res.json({ status: 'okay', timestamp: new Date().toISOString(), service: 'echoguide-api-monolith' });
-});
-
-// Domain Monolith Modules (§8.1)
-app.use(authModule);
-app.use(usersModule);
-app.use(commandsModule);
-app.use(consentModule);
-app.use(telemetryModule);
-app.use(adminModule);
-
-app.listen(port, () => {
-  console.log(`[EchoGuide Backend API] Modular Monolith running on port ${port}`);
+app.listen(port, host, () => {
+  console.log(JSON.stringify({ event: 'api.started', host, port }));
 });
