@@ -20,4 +20,4 @@ export interface Spec extends TurboModule {
   }>;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('VoicePipelineBridge');
+export default TurboModuleRegistry.get<Spec>('VoicePipelineBridge');

@@ -8,13 +8,11 @@ const nextConfig = {
   webpack: (config) => {
     const reactPath = path.dirname(require.resolve('react/package.json'));
     const reactDomPath = path.dirname(require.resolve('react-dom/package.json'));
-    const styledJsxPath = path.dirname(require.resolve('styled-jsx/package.json'));
 
     config.resolve.alias = {
       ...config.resolve.alias,
       react: reactPath,
       'react-dom': reactDomPath,
-      'styled-jsx': styledJsxPath,
     };
     return config;
   },
