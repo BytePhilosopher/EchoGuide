@@ -37,7 +37,7 @@ class VoicePipelineService private constructor(private val context: Context) {
   private val synthesizer = SpeechSynthesizer(context)
   private val machine = CommandStateMachine()
   private val installer = VoskModelInstaller(File(context.filesDir, "models"))
-  private val detector = WakeWordDetector(installer.modelDirectory)
+  private var detector = WakeWordDetector(installer.modelDirectory, state.wakeWord)
 
   private val worker = Executors.newSingleThreadExecutor()
   private val timers: ScheduledExecutorService = ScheduledThreadPoolExecutor(1)
@@ -130,6 +130,20 @@ class VoicePipelineService private constructor(private val context: Context) {
   fun hasVoiceForCurrentLanguage(): Boolean = synthesizer.hasVoiceFor(state.language)
 
   fun installId(): String = state.installId
+
+  fun setWakeWord(phrase: String) {
+    val next = phrase.trim().lowercase()
+    if (next.isEmpty() || next == state.wakeWord) return
+    val wasRunning = wakeLoopRunning.get()
+    stopWakeWord()
+    capture.cancel()
+    state.wakeWord = next
+    detector.close()
+    detector = WakeWordDetector(installer.modelDirectory, next)
+    if (wasRunning) startWakeWordLoop()
+  }
+
+  fun wakeWord(): String = state.wakeWord
 
   fun registerDevice() {
     if (state.isRegistered) return

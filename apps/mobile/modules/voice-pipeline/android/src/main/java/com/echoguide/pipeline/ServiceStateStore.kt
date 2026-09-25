@@ -23,6 +23,10 @@ class ServiceStateStore(context: Context) {
     get() = prefs.getBoolean(KEY_CONSENT, false)
     set(value) = prefs.edit().putBoolean(KEY_CONSENT, value).apply()
 
+  var wakeWord: String
+    get() = prefs.getString(KEY_WAKE_PHRASE, DEFAULT_WAKE_WORD) ?: DEFAULT_WAKE_WORD
+    set(value) = prefs.edit().putString(KEY_WAKE_PHRASE, value.trim().lowercase()).apply()
+
   var isRegistered: Boolean
     get() = prefs.getBoolean(KEY_REGISTERED, false)
     set(value) = prefs.edit().putBoolean(KEY_REGISTERED, value).apply()
@@ -40,6 +44,8 @@ class ServiceStateStore(context: Context) {
     const val KEY_WAKE_WORD = "wake_word_enabled"
     const val KEY_CONSENT = "consent_granted"
     const val KEY_REGISTERED = "device_registered"
+    const val KEY_WAKE_PHRASE = "wake_phrase"
     const val DEFAULT_LANGUAGE = "am-ET"
+    const val DEFAULT_WAKE_WORD = "echo"
   }
 }

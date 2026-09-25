@@ -58,7 +58,7 @@ const initialState: AppState = {
   consentGranted: false,
   dataRetentionOptIn: false,
   speechRate: 100,
-  wakeWord: 'Echo',
+  wakeWord: 'echo',
   commandHistory: [],
   consentTrail: [],
   subscription: {

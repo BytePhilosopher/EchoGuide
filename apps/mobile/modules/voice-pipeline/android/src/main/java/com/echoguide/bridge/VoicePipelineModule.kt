@@ -57,6 +57,11 @@ class VoicePipelineModule : Module() {
       pipeline()?.answerConfirmation(confirmed)
     }
 
+    AsyncFunction("setWakeWord") { phrase: String ->
+      pipeline()?.setWakeWord(phrase)
+      pipeline()?.wakeWord() ?: phrase
+    }
+
     AsyncFunction("registerDevice") {
       pipeline()?.registerDevice()
     }
@@ -119,6 +124,7 @@ class VoicePipelineModule : Module() {
         "hasVoice" to (pipeline()?.hasVoiceForCurrentLanguage() ?: false),
         "installId" to (pipeline()?.installId() ?: ""),
         "currentLanguage" to (snapshot?.language ?: PhraseCatalog.language),
+        "wakeWord" to (pipeline()?.wakeWord() ?: "echo"),
       )
     }
 

@@ -32,6 +32,7 @@ const UNAVAILABLE: ServiceState = {
   isAccessibilityEnabled: false,
   hasConsent: false,
   hasVoice: false,
+  wakeWord: 'echo',
   installId: '',
   currentLanguage: 'am-ET',
 };
@@ -65,6 +66,11 @@ class VoicePipelineBridgeManager {
   async setConsent(granted: boolean): Promise<boolean> {
     if (!VoicePipelineNativeModule) return false;
     return withTimeout(VoicePipelineNativeModule.setConsent(granted), false);
+  }
+
+  async setWakeWord(phrase: string): Promise<string> {
+    if (!VoicePipelineNativeModule) return phrase;
+    return withTimeout(VoicePipelineNativeModule.setWakeWord(phrase), phrase);
   }
 
   async registerDevice(): Promise<void> {

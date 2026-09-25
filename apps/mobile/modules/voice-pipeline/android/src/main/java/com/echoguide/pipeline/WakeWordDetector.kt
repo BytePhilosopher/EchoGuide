@@ -7,8 +7,9 @@ import org.vosk.Recognizer
 
 class WakeWordDetector(
   private val modelDirectory: File,
-  private val keyword: String = DEFAULT_KEYWORD,
+  keyword: String = DEFAULT_KEYWORD,
 ) {
+  private val keyword = keyword.trim().lowercase()
   private var model: Model? = null
   private var recognizer: Recognizer? = null
 
@@ -56,12 +57,13 @@ class WakeWordDetector(
     payload ?: return false
     val json = runCatching { JSONObject(payload) }.getOrNull() ?: return false
     val heard = json.optString("text").ifEmpty { json.optString("partial") }
-    return heard.contains(keyword, ignoreCase = true)
+    if (heard.isEmpty()) return false
+    return heard.lowercase().split(' ', '\n', '\t').any { it.trim() == keyword }
   }
 
   private companion object {
     const val SAMPLE_RATE = 16_000f
 
-    const val DEFAULT_KEYWORD = "hey echo"
+    const val DEFAULT_KEYWORD = "echo"
   }
 }
