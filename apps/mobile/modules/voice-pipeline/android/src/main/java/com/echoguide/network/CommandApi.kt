@@ -1,6 +1,5 @@
 package com.echoguide.network
 
-import android.util.Base64
 import com.echoguide.voice.BuildConfig
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -36,7 +35,7 @@ class CommandApi(
 
     val idempotencyKey = UUID.randomUUID().toString()
     val body = JSONObject()
-      .put("audio_base64", Base64.encodeToString(audio, Base64.NO_WRAP))
+      .put("audio_base64", Base64Encoder.encode(audio))
       .put("duration_ms", durationMs)
       .put("language", language)
       .put(

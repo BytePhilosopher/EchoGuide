@@ -18,6 +18,12 @@ import java.util.concurrent.TimeUnit
 class AccessibilityExecutorService : AccessibilityService() {
   private val reducer = ViewTreeReducer()
 
+  @Volatile
+  private var currentPackage: String = ""
+
+  @Volatile
+  private var settleLatch: CountDownLatch? = null
+
   private val shortcutCallback = object : AccessibilityButtonController.AccessibilityButtonCallback() {
     override fun onClicked(controller: AccessibilityButtonController) {
       onShortcut?.invoke()
@@ -32,7 +38,14 @@ class AccessibilityExecutorService : AccessibilityService() {
     }
   }
 
-  override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+  override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+    event?.packageName?.let { currentPackage = it.toString() }
+    if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
+      event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+    ) {
+      settleLatch?.countDown()
+    }
+  }
 
   override fun onInterrupt() = Unit
 
@@ -46,10 +59,31 @@ class AccessibilityExecutorService : AccessibilityService() {
 
   fun captureScreen(): ViewTreeReducer.Reduction = reducer.reduce(rootInActiveWindow)
 
-  fun foregroundPackage(): String = rootInActiveWindow?.packageName?.toString().orEmpty()
+  fun foregroundPackage(): String =
+    currentPackage.ifEmpty { rootInActiveWindow?.packageName?.toString().orEmpty() }
 
-  fun execute(plan: ActionPlan): Boolean =
-    plan.steps.all { step -> perform(step) }
+  fun execute(plan: ActionPlan): Boolean {
+    plan.steps.forEachIndexed { index, step ->
+      if (!isStillAddressable(step)) return false
+      if (!perform(step)) return false
+      if (index < plan.steps.lastIndex) awaitSettle()
+    }
+    return true
+  }
+
+  private fun isStillAddressable(step: ActionStep): Boolean {
+    if (step.actionType !in NODE_ADDRESSED) return true
+    val nodeId = step.targetNodeId ?: return false
+    val root = rootInActiveWindow ?: return false
+    return root.findAccessibilityNodeInfosByViewId(nodeId)?.isNotEmpty() == true
+  }
+
+  private fun awaitSettle() {
+    val latch = CountDownLatch(1)
+    settleLatch = latch
+    latch.await(SETTLE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+    settleLatch = null
+  }
 
   private fun perform(step: ActionStep): Boolean = when (step.actionType) {
     ActionType.BACK -> performGlobalAction(GLOBAL_ACTION_BACK)
@@ -111,6 +145,9 @@ class AccessibilityExecutorService : AccessibilityService() {
     @Volatile
     var onShortcut: (() -> Unit)? = null
 
+    val NODE_ADDRESSED = setOf(ActionType.TAP, ActionType.SCROLL, ActionType.TEXT_INPUT)
+
+    const val SETTLE_TIMEOUT_MS = 400L
     const val TAP_DURATION_MS = 60L
     const val GESTURE_TIMEOUT_MS = 2_000L
   }

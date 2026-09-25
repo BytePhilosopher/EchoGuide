@@ -30,8 +30,11 @@ export const ConfirmationOverlay: React.FC = () => {
       <View style={styles.backdrop}>
         <View
           style={styles.sheet}
+          accessible
           accessibilityViewIsModal
+          accessibilityRole="alert"
           accessibilityLiveRegion="assertive"
+          accessibilityLabel={`${t('confirmTitle', language)}. ${t('confirmBody', language)}`}
         >
           <Text style={styles.title} accessibilityRole="header">
             {t('confirmTitle', language)}

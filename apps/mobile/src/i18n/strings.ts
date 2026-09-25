@@ -153,6 +153,12 @@ const STRINGS = {
     'en-US': 'Opens Android settings so you can install an Amharic voice',
   },
 
+  sectionWakeWord: { 'am-ET': 'የማንቂያ ቃል', 'en-US': 'WAKE WORD' },
+  wakeWordPickerHint: {
+    'am-ET': 'EchoGuide የሚያዳምጠው ቃል። ረዘም ያለ ቃል በስህተት የመነሳት እድሉ ያንሳል።',
+    'en-US': 'The word EchoGuide listens for. A longer phrase triggers by accident less often.',
+  },
+
   tabHome: { 'am-ET': 'ዋና', 'en-US': 'Home' },
   tabHistory: { 'am-ET': 'ታሪክ', 'en-US': 'History' },
   tabSettings: { 'am-ET': 'ቅንብሮች', 'en-US': 'Settings' },

@@ -12,15 +12,19 @@ const LANGUAGES: { code: LanguageCode; native: string; descKey: 'amharicEngine' 
   { code: 'en-US', native: 'English', descKey: 'englishEngine' },
 ];
 
+const WAKE_WORDS = ['echo', 'hey echo'];
+
 export const SettingsScreen: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [wakeWordActive, setWakeWordActive] = useState(false);
+  const [wakeWord, setWakeWord] = useState('echo');
   const [isRevoking, setIsRevoking] = useState(false);
   const lang = state.selectedLanguage;
 
   useEffect(() => {
     VoicePipelineBridge.getServiceState().then((service) => {
       setWakeWordActive(service.isWakeWordActive);
+      setWakeWord(service.wakeWord);
     });
   }, []);
 
@@ -103,6 +107,32 @@ export const SettingsScreen: React.FC = () => {
         />
       </Card>
 
+      <SectionHeader title={t('sectionWakeWord', lang)} subtitle={t('wakeWordPickerHint', lang)} />
+      <Card>
+        {WAKE_WORDS.map((phrase, index) => {
+          const isSelected = wakeWord === phrase;
+          return (
+            <React.Fragment key={phrase}>
+              {index > 0 ? <Divider spacing={Theme.spacing.sm} /> : null}
+              <Pressable
+                onPress={async () => {
+                  setWakeWord(phrase);
+                  dispatch({ type: 'SET_WAKE_WORD', word: phrase });
+                  await VoicePipelineBridge.setWakeWord(phrase);
+                }}
+                accessibilityRole="radio"
+                accessibilityLabel={phrase}
+                accessibilityState={{ selected: isSelected }}
+                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+              >
+                <Text style={styles.optionTitle}>{`“${phrase}”`}</Text>
+                {isSelected ? <Check size={22} color={Theme.colors.accent} strokeWidth={2.25} /> : null}
+              </Pressable>
+            </React.Fragment>
+          );
+        })}
+      </Card>
+
       <SectionHeader title={t('sectionPrivacy', lang)} />
       <Card>
         <Text style={styles.privacyTitle}>{t('revocationLabel', lang)}</Text>
@@ -135,7 +165,7 @@ const styles = StyleSheet.create({
   },
   optionPressed: { opacity: 0.7 },
   optionText: { flex: 1, paddingRight: Theme.spacing.md },
-  optionTitle: { ...Theme.type.body, color: Theme.colors.strong },
+  optionTitle: { ...Theme.type.body, color: Theme.colors.strong, flex: 1 },
   optionDesc: { ...Theme.type.caption, color: Theme.colors.muted, marginTop: 2 },
   privacyTitle: { ...Theme.type.bodyStrong, color: Theme.colors.strong },
   privacyBody: {
