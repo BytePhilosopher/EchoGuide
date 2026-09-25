@@ -1,0 +1,40 @@
+package com.echoguide.pipeline
+
+import android.content.Context
+import android.content.SharedPreferences
+
+class ServiceStateStore(context: Context) {
+  private val prefs: SharedPreferences =
+    context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+
+  var installId: String
+    get() = prefs.getString(KEY_INSTALL_ID, null) ?: newInstallId()
+    set(value) = prefs.edit().putString(KEY_INSTALL_ID, value).apply()
+
+  var language: String
+    get() = prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
+    set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
+
+  var isWakeWordEnabled: Boolean
+    get() = prefs.getBoolean(KEY_WAKE_WORD, false)
+    set(value) = prefs.edit().putBoolean(KEY_WAKE_WORD, value).apply()
+
+  var hasConsent: Boolean
+    get() = prefs.getBoolean(KEY_CONSENT, false)
+    set(value) = prefs.edit().putBoolean(KEY_CONSENT, value).apply()
+
+  private fun newInstallId(): String {
+    val generated = java.util.UUID.randomUUID().toString()
+    prefs.edit().putString(KEY_INSTALL_ID, generated).apply()
+    return generated
+  }
+
+  private companion object {
+    const val FILE = "echoguide_service_state"
+    const val KEY_INSTALL_ID = "install_id"
+    const val KEY_LANGUAGE = "language"
+    const val KEY_WAKE_WORD = "wake_word_enabled"
+    const val KEY_CONSENT = "consent_granted"
+    const val DEFAULT_LANGUAGE = "am-ET"
+  }
+}

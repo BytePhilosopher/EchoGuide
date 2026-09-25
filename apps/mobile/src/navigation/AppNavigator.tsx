@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { House, ListChecks, Settings, User, type LucideIcon } from 'lucide-react-native';
 import { Theme } from '../design/theme';
 import { HomeScreen } from '../features/home/HomeScreen';
 import { OnboardingScreen } from '../features/onboarding/OnboardingScreen';
@@ -7,68 +8,64 @@ import { HistoryScreen } from '../features/history/HistoryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { AccountScreen } from '../features/account/AccountScreen';
 import { useAppState } from '../state/AppStateContext';
+import { t, type StringKey } from '../i18n/strings';
 
-type TabName = 'Status' | 'History' | 'Settings' | 'Account';
+type TabName = 'home' | 'history' | 'settings' | 'account';
+
+const TABS: { name: TabName; icon: LucideIcon; label: StringKey }[] = [
+  { name: 'home', icon: House, label: 'tabHome' },
+  { name: 'history', icon: ListChecks, label: 'tabHistory' },
+  { name: 'settings', icon: Settings, label: 'tabSettings' },
+  { name: 'account', icon: User, label: 'tabAccount' },
+];
 
 export const AppNavigator: React.FC = () => {
-  const { state } = useAppState();
-  const [isOnboarded, setIsOnboarded] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<TabName>('Status');
+  const { state, dispatch } = useAppState();
+  const [activeTab, setActiveTab] = useState<TabName>('home');
+  const language = state.selectedLanguage;
 
-  if (!isOnboarded && !state.onboardingComplete) {
-    return <OnboardingScreen onComplete={() => setIsOnboarded(true)} />;
+  if (!state.onboardingComplete) {
+    return (
+      <OnboardingScreen onComplete={() => dispatch({ type: 'COMPLETE_ONBOARDING' })} />
+    );
   }
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'Status':
-        return <HomeScreen />;
-      case 'History':
-        return <HistoryScreen />;
-      case 'Settings':
-        return <SettingsScreen />;
-      case 'Account':
-        return <AccountScreen />;
-    }
-  };
-
-  const tabs: { key: TabName; label: string; icon: string }[] = [
-    { key: 'Status', label: 'Hub', icon: '⚡' },
-    { key: 'History', label: 'Outcomes', icon: '📜' },
-    { key: 'Settings', label: 'Settings', icon: '⚙️' },
-    { key: 'Account', label: 'Account', icon: '👤' },
-  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.mainContainer}>
-        {renderTabContent()}
+      <StatusBar barStyle="light-content" backgroundColor={Theme.colors.ground} />
 
-        {/* Futuristic Bottom Navigation Bar */}
-        <View style={styles.tabBar} accessibilityLabel="Main Navigation Bar">
-          {tabs.map((t) => {
-            const isActive = activeTab === t.key;
-            return (
-              <TouchableOpacity
-                key={t.key}
-                style={[styles.tabItem, isActive && styles.tabItemActive]}
-                onPress={() => setActiveTab(t.key)}
-                accessibilityRole="tab"
-                accessibilityLabel={`${t.label} Tab`}
-                accessibilityState={{ selected: isActive }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.tabIconContainer, isActive && styles.tabIconContainerActive]}>
-                  <Text style={{ fontSize: 18, opacity: isActive ? 1 : 0.6 }}>{t.icon}</Text>
-                </View>
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                  {t.label}
-                </Text>
-                {isActive && <View style={styles.activeGlowIndicator} />}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      <View style={styles.screen}>
+        {activeTab === 'home' ? <HomeScreen /> : null}
+        {activeTab === 'history' ? <HistoryScreen /> : null}
+        {activeTab === 'settings' ? <SettingsScreen /> : null}
+        {activeTab === 'account' ? <AccountScreen /> : null}
+      </View>
+
+      <View style={styles.tabBar} accessibilityRole="tablist">
+        {TABS.map(({ name, icon: Icon, label }) => {
+          const isActive = activeTab === name;
+          return (
+            <Pressable
+              key={name}
+              onPress={() => setActiveTab(name)}
+              accessibilityRole="tab"
+              accessibilityLabel={t(label, language)}
+              accessibilityState={{ selected: isActive }}
+              style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+            >
+
+              <View style={[styles.tabMarker, isActive && styles.tabMarkerActive]} />
+              <Icon
+                size={22}
+                color={isActive ? Theme.colors.strong : Theme.colors.muted}
+                strokeWidth={isActive ? 2 : 1.5}
+              />
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]} numberOfLines={1}>
+                {t(label, language)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     </SafeAreaView>
   );
@@ -77,60 +74,44 @@ export const AppNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.ground,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  mainContainer: {
+  screen: {
     flex: 1,
-    justifyContent: 'space-between',
   },
   tabBar: {
     flexDirection: 'row',
-    height: 72,
-    backgroundColor: Theme.colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
-    alignItems: 'center',
-    paddingHorizontal: Theme.spacing.xs,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.line,
+    backgroundColor: Theme.colors.sunken,
+    paddingBottom: Theme.spacing.sm,
   },
-  tabItem: {
+  tab: {
     flex: 1,
+    minHeight: Theme.touchTarget,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    position: 'relative',
+    justifyContent: 'flex-start',
   },
-  tabItemActive: {
-    backgroundColor: 'rgba(0, 229, 255, 0.03)',
+  tabPressed: {
+    opacity: 0.6,
   },
-  tabIconContainer: {
-    marginBottom: 2,
+  tabMarker: {
+    height: 2,
+    width: 28,
+    borderRadius: 1,
+    backgroundColor: 'transparent',
+    marginBottom: Theme.spacing.sm,
   },
-  tabIconContainerActive: {
-    transform: [{ translateY: -2 }],
+  tabMarkerActive: {
+    backgroundColor: Theme.colors.accent,
   },
   tabLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
+    marginTop: 4,
   },
   tabLabelActive: {
-    color: Theme.colors.primary,
-    fontWeight: '800',
-  },
-  activeGlowIndicator: {
-    position: 'absolute',
-    top: 0,
-    width: 32,
-    height: 3,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: 2,
-    ...Theme.shadow.glow,
+    color: Theme.colors.strong,
   },
 });

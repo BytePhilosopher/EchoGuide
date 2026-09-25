@@ -1,0 +1,8 @@
+{
+  "name": "voice-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The only JS to Kotlin seam. Carries outcomes, never audio, transcripts or action plans.",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

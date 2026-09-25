@@ -4,13 +4,6 @@
     "slug": "echoguide-mobile",
     "version": "1.0.0",
     "sdkVersion": "57.0.0",
-    "newArchEnabled": true,
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#080C14"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -21,21 +14,21 @@
       "package": "com.echoguide.mobile",
       "permissions": [
         "RECORD_AUDIO",
-        "BIND_ACCESSIBILITY_SERVICE",
         "SYSTEM_ALERT_WINDOW",
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "plugins": [
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow EchoGuide to capture voice commands for accessibility automation."
-        }
-      ],
-      "expo-status-bar",
-      "expo-router"
-    ]
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8305ad61-1d06-4917-8efb-a0d3df8b8ecc"
+      }
+    },
+    "owner": "clientreachdevs-team"
   }
 }

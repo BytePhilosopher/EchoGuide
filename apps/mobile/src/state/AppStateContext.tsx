@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/* ─── Types ───────────────────────────────────────────────────── */
 export interface CommandOutcome {
   id: string;
   timestamp: string;
@@ -38,18 +38,6 @@ export interface AppState {
   accessibilityServiceEnabled: boolean;
 }
 
-/* ─── In-Memory Storage Engine ────────────────────────────────── */
-const MemoryStorage = {
-  _store: new Map<string, string>(),
-  getItem: async (key: string): Promise<string | null> => {
-    return MemoryStorage._store.get(key) || null;
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    MemoryStorage._store.set(key, value);
-  },
-};
-
-/* ─── Actions ─────────────────────────────────────────────────── */
 type Action =
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'SET_LANGUAGE'; language: 'am-ET' | 'en-US' }
@@ -64,26 +52,24 @@ type Action =
   | { type: 'HYDRATE'; state: Partial<AppState> }
   | { type: 'DELETE_ALL_DATA' };
 
-/* ─── Initial State ───────────────────────────────────────────── */
 const initialState: AppState = {
-  onboardingComplete: true,
+  onboardingComplete: false,
   selectedLanguage: 'am-ET',
-  consentGranted: true,
+  consentGranted: false,
   dataRetentionOptIn: false,
   speechRate: 100,
   wakeWord: 'Echo',
   commandHistory: [],
   consentTrail: [],
   subscription: {
-    plan: 'EchoGuide Pro',
-    status: 'active',
-    renewsAt: '2026-10-24',
-    commandsThisPeriod: 12,
+    plan: 'EchoGuide',
+    status: 'none',
+    renewsAt: null,
+    commandsThisPeriod: 0,
   },
-  accessibilityServiceEnabled: true,
+  accessibilityServiceEnabled: false,
 };
 
-/* ─── Reducer ─────────────────────────────────────────────────── */
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'COMPLETE_ONBOARDING':
@@ -141,7 +127,6 @@ function appReducer(state: AppState, action: Action): AppState {
   }
 }
 
-/* ─── Context ─────────────────────────────────────────────────── */
 const STORAGE_KEY = '@echoguide/app_state';
 
 interface AppStateContextType {
@@ -159,7 +144,6 @@ export const useAppState = (): AppStateContextType => {
   return context;
 };
 
-/* ─── Provider ────────────────────────────────────────────────── */
 interface ProviderProps {
   children: ReactNode;
 }
@@ -171,7 +155,7 @@ export const AppStateProvider: React.FC<ProviderProps> = ({ children }) => {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await MemoryStorage.getItem(STORAGE_KEY);
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           dispatch({ type: 'HYDRATE', state: parsed });
@@ -199,7 +183,7 @@ export const AppStateProvider: React.FC<ProviderProps> = ({ children }) => {
           consentTrail: state.consentTrail,
           subscription: state.subscription,
         };
-        await MemoryStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
       } catch (e) {
         console.warn('[AppState] Failed to persist state:', e);
       }
