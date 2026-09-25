@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import * as Haptics from 'expo-haptics';
 import { VoicePipelineBridge } from './VoicePipelineBridge';
 import { useAppState } from '../state/AppStateContext';
 
@@ -7,6 +8,11 @@ export function useCommandOutcomes(): void {
 
   useEffect(() => {
     const unsubscribe = VoicePipelineBridge.subscribeToOutcomes((event) => {
+      Haptics.notificationAsync(
+        event.outcome === 'done'
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning,
+      ).catch(() => undefined);
       dispatch({
         type: 'ADD_COMMAND_OUTCOME',
         outcome: {

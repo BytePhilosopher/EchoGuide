@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Mic, MicOff, ShieldAlert } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
 import { Card, PrimaryButton, SectionHeader } from '../../design/SharedComponents';
@@ -27,6 +28,9 @@ export const HomeScreen: React.FC = () => {
       : t('enginePaused', language);
 
   const toggleListening = () => {
+    Haptics.impactAsync(
+      isListening ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium,
+    ).catch(() => undefined);
     if (isListening) VoicePipelineBridge.stopListening();
     else if (pipeline.wakeWordAvailable) VoicePipelineBridge.startListening();
     else VoicePipelineBridge.triggerListening();

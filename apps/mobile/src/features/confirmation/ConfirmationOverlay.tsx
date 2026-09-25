@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Theme } from '../../design/theme';
 import { PrimaryButton } from '../../design/SharedComponents';
 import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
@@ -11,10 +12,17 @@ export const ConfirmationOverlay: React.FC = () => {
   const pipeline = usePipelineState();
   const { state } = useAppState();
   const language = state.selectedLanguage;
+  const visible = isAwaitingConfirmation(pipeline);
+
+  React.useEffect(() => {
+    if (visible) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+    }
+  }, [visible]);
 
   return (
     <Modal
-      visible={isAwaitingConfirmation(pipeline)}
+      visible={visible}
       transparent
       animationType="fade"
       onRequestClose={() => VoicePipelineBridge.confirmPending(false)}

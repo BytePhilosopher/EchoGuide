@@ -72,6 +72,7 @@ class VoicePipelineModule : Module() {
       PhraseCatalog.refresh(context, languageCode)
       speech(context).setLanguage(languageCode)
       store(context).language = PhraseCatalog.language
+      pipeline()?.refreshPhrases(PhraseCatalog.language)
       true
     }
 

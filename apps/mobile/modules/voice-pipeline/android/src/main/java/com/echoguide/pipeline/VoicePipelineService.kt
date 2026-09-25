@@ -9,6 +9,7 @@ import com.echoguide.network.CommandResult
 import com.echoguide.network.ScreenContext
 import com.echoguide.network.SpeakCode
 import com.echoguide.network.TelemetryClient
+import com.echoguide.speech.PhraseCatalog
 import com.echoguide.speech.SpeechSynthesizer
 import java.io.File
 import java.text.SimpleDateFormat
@@ -16,6 +17,9 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class VoicePipelineService private constructor(private val context: Context) {
@@ -36,6 +40,7 @@ class VoicePipelineService private constructor(private val context: Context) {
   private val detector = WakeWordDetector(installer.modelDirectory)
 
   private val worker = Executors.newSingleThreadExecutor()
+  private val timers: ScheduledExecutorService = ScheduledThreadPoolExecutor(1)
   private val isBusy = AtomicBoolean(false)
   private val wakeLoopRunning = AtomicBoolean(false)
 
@@ -120,6 +125,12 @@ class VoicePipelineService private constructor(private val context: Context) {
 
   fun installId(): String = state.installId
 
+  fun refreshPhrases(language: String) {
+    worker.execute {
+      api.fetchPhrases(language)?.let { PhraseCatalog.applyRemote(it) }
+    }
+  }
+
   fun answerConfirmation(confirmed: Boolean) {
     val plan = pendingPlan ?: return
     pendingPlan = null
@@ -174,6 +185,11 @@ class VoicePipelineService private constructor(private val context: Context) {
         speak(machine.on(CommandStateMachine.Event.BufferClosed(recorded.durationMs)).speak)
         val captureMs = elapsed(started)
         val uploadStarted = System.currentTimeMillis()
+        val stillWorking = timers.schedule(
+          { synthesizer.playPhrase(SpeakCode.STILL_WORKING.name) },
+          STILL_WORKING_AFTER_MS,
+          TimeUnit.MILLISECONDS,
+        )
         val result = api.submit(
           audio = recorded.pcm,
           durationMs = recorded.durationMs.coerceIn(MIN_UPLOAD_MS, MAX_UPLOAD_MS),
@@ -182,6 +198,7 @@ class VoicePipelineService private constructor(private val context: Context) {
           installId = state.installId,
           requestId = requestId,
         )
+        stillWorking.cancel(false)
         handleServer(
           result,
           foreground,
@@ -308,6 +325,7 @@ class VoicePipelineService private constructor(private val context: Context) {
       .format(System.currentTimeMillis())
 
   companion object {
+    private const val STILL_WORKING_AFTER_MS = 3_000L
     private const val MIN_UPLOAD_MS = 400
     private const val MAX_UPLOAD_MS = 15_000
 

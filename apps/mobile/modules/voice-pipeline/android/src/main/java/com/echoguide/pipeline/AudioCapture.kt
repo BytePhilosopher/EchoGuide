@@ -25,13 +25,37 @@ class AudioCapture(
     isCancelled = true
   }
 
-  fun awaitWakeWord(detector: WakeWordDetector): Boolean {
+  fun awaitWakeWord(detector: WakeWordDetector, gate: EnergyGate = EnergyGate()): Boolean {
     isCancelled = false
     detector.reset()
+    gate.reset()
+
+    val preroll = FramePreroll(PREROLL_FRAMES)
+    var wasOpen = false
+
     return withRecorder { recorder, frame ->
       while (!isCancelled) {
         val read = recorder.read(frame, 0, frame.size)
         if (read <= 0) continue
+
+        val isOpen = gate.accept(frame, read)
+
+        if (!isOpen) {
+          if (wasOpen) {
+            detector.reset()
+            wasOpen = false
+          }
+          preroll.push(frame, read)
+          continue
+        }
+
+        if (!wasOpen) {
+          wasOpen = true
+          preroll.drain().forEach { buffered ->
+            if (detector.accept(buffered, buffered.size)) return@withRecorder true
+          }
+        }
+
         if (detector.accept(frame, read)) return@withRecorder true
       }
       false
@@ -108,6 +132,8 @@ class AudioCapture(
     const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
 
     const val FRAME_SAMPLES = 320
+
+    const val PREROLL_FRAMES = 20
 
     const val MAX_UTTERANCE_BYTES = 15 * 16_000 * 2
 

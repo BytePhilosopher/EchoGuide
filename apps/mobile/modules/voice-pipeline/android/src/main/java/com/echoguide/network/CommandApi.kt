@@ -75,6 +75,25 @@ class CommandApi(
     return CommandResult.Failed(SpeakCode.ERR_NETWORK)
   }
 
+  fun fetchPhrases(language: String): Map<String, String>? {
+    val request = Request.Builder()
+      .url("$baseUrl/v1/phrases?language=$language")
+      .get()
+      .build()
+    return try {
+      client.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) return null
+        val payload = response.body?.string() ?: return null
+        val phrases = JSONObject(payload).optJSONObject("phrases") ?: return null
+        phrases.keys().asSequence().associateWith { phrases.getString(it) }
+      }
+    } catch (_: IOException) {
+      null
+    } catch (_: org.json.JSONException) {
+      null
+    }
+  }
+
   private sealed interface Attempt {
     data class Ok(val response: CommandResponse) : Attempt
     data class Retryable(val speakCode: SpeakCode) : Attempt
