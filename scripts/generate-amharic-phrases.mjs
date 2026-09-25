@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +8,9 @@ const CATALOG = join(ROOT, 'apps/mobile/modules/voice-pipeline/android/src/main/
 const OUT_DIR = join(ROOT, 'apps/mobile/modules/voice-pipeline/android/src/main/assets/phrases/am-ET');
 
 const ENDPOINT = 'https://api.addisassistant.com/api/v1/voice/generations';
+const MAX_RETRIES = 5;
+const BACKOFF_MS = 20_000;
+const PACE_MS = 4_000;
 const VOICE_ID = process.env.ADDIS_VOICE_ID ?? 'am-hamen';
 const API_KEY = process.env.ADDIS_AI_API_KEY;
 
@@ -17,8 +20,12 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-async function generate(key, text) {
-  const response = await fetch(ENDPOINT, {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const exists = (path) => access(path).then(() => true, () => false);
+
+async function post(key, text) {
+  return fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': API_KEY },
     body: JSON.stringify({
@@ -29,6 +36,18 @@ async function generate(key, text) {
       client_request_id: `echoguide-phrase-${key}`,
     }),
   });
+}
+
+async function generate(key, text) {
+  let response = await post(key, text);
+
+  for (let attempt = 0; response.status === 429 && attempt < MAX_RETRIES; attempt += 1) {
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : BACKOFF_MS * (attempt + 1);
+    console.log(`${key}: rate limited, waiting ${Math.round(waitMs / 1000)}s`);
+    await sleep(waitMs);
+    response = await post(key, text);
+  }
 
   if (!response.ok) {
     throw new Error(`${key}: ${response.status} ${(await response.text()).slice(0, 200)}`);
@@ -57,9 +76,16 @@ for (const [key, entry] of Object.entries(catalog)) {
     failed += 1;
     continue;
   }
+  const target = join(OUT_DIR, `${key}.mp3`);
+  if (await exists(target)) {
+    console.log(`${key}  already present, skipped`);
+    continue;
+  }
+
   try {
     const path = await generate(key, text);
     console.log(`${key}  ${text}  ->  ${path.replace(ROOT + '/', '')}`);
+    await sleep(PACE_MS);
   } catch (error) {
     console.error(String(error.message));
     failed += 1;
