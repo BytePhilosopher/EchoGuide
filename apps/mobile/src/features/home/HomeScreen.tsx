@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Mic, MicOff, ShieldAlert } from 'lucide-react-native';
+import { Mic, MicOff, ShieldAlert, Volume2 } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
 import { Card, PrimaryButton, SectionHeader } from '../../design/SharedComponents';
 import { useAppState } from '../../state/AppStateContext';
@@ -102,6 +102,25 @@ export const HomeScreen: React.FC = () => {
             title={t('openAccessibility', language)}
             onPress={() => VoicePipelineBridge.openAccessibilitySettings()}
             accessibilityHint={t('openAccessibilityHint', language)}
+            style={styles.setupButton}
+          />
+        </Card>
+      ) : null}
+
+      {pipeline.available && !pipeline.hasVoice ? (
+        <Card style={styles.setupCard}>
+          <View style={styles.setupRow}>
+            <Volume2 size={20} color={Theme.colors.accent} strokeWidth={1.75} />
+            <View style={styles.setupCopy}>
+              <Text style={styles.setupTitle}>{t('voiceMissingTitle', language)}</Text>
+              <Text style={styles.setupBody}>{t('voiceMissingBody', language)}</Text>
+            </View>
+          </View>
+          <PrimaryButton
+            title={t('openVoiceSettings', language)}
+            onPress={() => VoicePipelineBridge.openVoiceSettings()}
+            variant="secondary"
+            accessibilityHint={t('openVoiceSettingsHint', language)}
             style={styles.setupButton}
           />
         </Card>
@@ -208,6 +227,19 @@ const styles = StyleSheet.create({
     color: Theme.colors.base,
     flex: 1,
     marginLeft: Theme.spacing.sm,
+  },
+  setupCopy: {
+    flex: 1,
+    marginLeft: Theme.spacing.sm,
+  },
+  setupBody: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
+  },
+  setupTitle: {
+    ...Theme.type.bodyStrong,
+    color: Theme.colors.strong,
+    marginBottom: 2,
   },
   setupButton: {
     marginTop: Theme.spacing.md,

@@ -123,6 +123,8 @@ class VoicePipelineService private constructor(private val context: Context) {
 
   fun hasConsent(): Boolean = state.hasConsent
 
+  fun hasVoiceForCurrentLanguage(): Boolean = synthesizer.hasVoiceFor(state.language)
+
   fun installId(): String = state.installId
 
   fun refreshPhrases(language: String) {

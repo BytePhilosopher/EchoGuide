@@ -141,6 +141,18 @@ const STRINGS = {
   installIdUnknown: { 'am-ET': 'ገና አልተመዘገበም', 'en-US': 'Not registered yet' },
   statusActive: { 'am-ET': 'ንቁ', 'en-US': 'Active' },
   statusInactive: { 'am-ET': 'ንቁ አይደለም', 'en-US': 'Inactive' },
+  voiceMissingTitle: { 'am-ET': 'የአማርኛ ድምጽ አልተጫነም', 'en-US': 'Amharic voice not installed' },
+  voiceMissingBody: {
+    'am-ET': 'ስልክዎ በአማርኛ መናገር አይችልም፣ ስለዚህ EchoGuide በእንግሊዝኛ ይመልሳል። በቅንብሮች ውስጥ የአማርኛ ድምጽ ይጫኑ።',
+    'en-US':
+      'Your phone cannot speak Amharic, so EchoGuide will reply in English. Install an Amharic voice in settings.',
+  },
+  openVoiceSettings: { 'am-ET': 'የድምጽ ቅንብሮችን ክፈት', 'en-US': 'Open voice settings' },
+  openVoiceSettingsHint: {
+    'am-ET': 'የአማርኛ ድምጽ ለመጫን የAndroid ቅንብሮችን ይከፍታል',
+    'en-US': 'Opens Android settings so you can install an Amharic voice',
+  },
+
   tabHome: { 'am-ET': 'ዋና', 'en-US': 'Home' },
   tabHistory: { 'am-ET': 'ታሪክ', 'en-US': 'History' },
   tabSettings: { 'am-ET': 'ቅንብሮች', 'en-US': 'Settings' },

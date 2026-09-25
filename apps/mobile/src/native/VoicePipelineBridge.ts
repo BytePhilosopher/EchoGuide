@@ -31,6 +31,7 @@ const UNAVAILABLE: ServiceState = {
   isWakeWordReady: false,
   isAccessibilityEnabled: false,
   hasConsent: false,
+  hasVoice: false,
   installId: '',
   currentLanguage: 'am-ET',
 };
@@ -74,6 +75,11 @@ class VoicePipelineBridgeManager {
   async openAccessibilitySettings(): Promise<boolean> {
     if (!VoicePipelineNativeModule) return false;
     return withTimeout(VoicePipelineNativeModule.openAccessibilitySettings(), false);
+  }
+
+  async openVoiceSettings(): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.openVoiceSettings(), false);
   }
 
   async setLanguage(languageCode: LanguageCode): Promise<boolean> {

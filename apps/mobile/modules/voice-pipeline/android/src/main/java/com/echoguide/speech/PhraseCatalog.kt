@@ -25,6 +25,19 @@ object PhraseCatalog {
 
     fun assetPath(key: String): String = "phrases/$language/$key.mp3"
 
+    fun textIn(spoken: String, languageCode: String): String {
+        val keys = phrases.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val entry = phrases.optJSONObject(key) ?: continue
+            if (entry.optString(language) == spoken) {
+                val alternate = entry.optString(languageCode)
+                if (alternate.isNotEmpty()) return alternate
+            }
+        }
+        return spoken
+    }
+
     fun applyRemote(remote: Map<String, String>) {
         remote.forEach { (key, value) ->
             val entry = phrases.optJSONObject(key) ?: JSONObject().also { phrases.put(key, it) }

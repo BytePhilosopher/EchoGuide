@@ -5,6 +5,7 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.ActivityNotFoundException
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import com.echoguide.executor.AccessibilityExecutorService
@@ -67,6 +68,22 @@ class VoicePipelineModule : Module() {
       runCatching { context.startActivity(intent) }.isSuccess
     }
 
+    AsyncFunction("openVoiceSettings") {
+      val context = appContext.reactContext ?: return@AsyncFunction false
+      val intent = Intent("com.android.settings.TTS_SETTINGS")
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      try {
+        context.startActivity(intent)
+        true
+      } catch (_: ActivityNotFoundException) {
+        runCatching {
+          context.startActivity(
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+          )
+        }.isSuccess
+      }
+    }
+
     AsyncFunction("setLanguage") { languageCode: String ->
       val context = appContext.reactContext ?: return@AsyncFunction false
       PhraseCatalog.refresh(context, languageCode)
@@ -95,6 +112,7 @@ class VoicePipelineModule : Module() {
         "isWakeWordReady" to (snapshot?.isWakeWordReady ?: false),
         "isAccessibilityEnabled" to (context?.let { isExecutorEnabled(it) } ?: false),
         "hasConsent" to (pipeline()?.hasConsent() ?: false),
+        "hasVoice" to (pipeline()?.hasVoiceForCurrentLanguage() ?: false),
         "installId" to (pipeline()?.installId() ?: ""),
         "currentLanguage" to (snapshot?.language ?: PhraseCatalog.language),
       )

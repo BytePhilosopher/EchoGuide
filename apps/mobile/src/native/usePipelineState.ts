@@ -8,6 +8,7 @@ export interface PipelineStatus {
   state: PipelineState;
   wakeWordAvailable: boolean;
   accessibilityEnabled: boolean;
+  hasVoice: boolean;
 }
 
 export const isAwaitingConfirmation = (status: PipelineStatus): boolean =>
@@ -19,6 +20,7 @@ const INITIAL: PipelineStatus = {
   state: 'IDLE',
   wakeWordAvailable: false,
   accessibilityEnabled: false,
+  hasVoice: true,
 };
 
 export function usePipelineState(): PipelineStatus {
@@ -36,19 +38,21 @@ export function usePipelineState(): PipelineStatus {
         isListening: service.isWakeWordActive,
         wakeWordAvailable: service.isWakeWordReady,
         accessibilityEnabled: service.isAccessibilityEnabled,
+        hasVoice: service.hasVoice,
       }));
     };
 
     refresh();
 
     const unsubscribe = VoicePipelineBridge.subscribeToState((event) => {
-      setStatus({
+      setStatus((previous) => ({
+        ...previous,
         available: true,
         isListening: event.isListening,
         state: event.state,
         wakeWordAvailable: event.wakeWordAvailable,
         accessibilityEnabled: event.accessibilityEnabled,
-      });
+      }));
     });
 
     const appStateSub = RNAppState.addEventListener('change', (next) => {

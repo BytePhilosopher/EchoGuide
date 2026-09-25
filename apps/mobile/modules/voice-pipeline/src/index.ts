@@ -13,6 +13,7 @@ export interface ServiceState {
   isWakeWordReady: boolean;
   isAccessibilityEnabled: boolean;
   hasConsent: boolean;
+  hasVoice: boolean;
   installId: string;
   currentLanguage: LanguageCode;
 }
@@ -57,6 +58,7 @@ interface VoicePipelineNative {
   setConsent(granted: boolean): Promise<boolean>;
   prepareWakeWord(): Promise<void>;
   openAccessibilitySettings(): Promise<boolean>;
+  openVoiceSettings(): Promise<boolean>;
   setLanguage(languageCode: LanguageCode): Promise<boolean>;
   revokeConsent(): Promise<void>;
   getServiceState(): Promise<ServiceState>;
