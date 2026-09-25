@@ -51,6 +51,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     setIsSubmitting(true);
     await VoicePipelineBridge.setLanguage(lang);
     await VoicePipelineBridge.setConsent(true);
+    await VoicePipelineBridge.registerDevice();
     dispatch({ type: 'SET_LANGUAGE', language: lang });
     dispatch({ type: 'SET_CONSENT', granted: true });
     setIsSubmitting(false);

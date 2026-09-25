@@ -75,6 +75,25 @@ class CommandApi(
     return CommandResult.Failed(SpeakCode.ERR_NETWORK)
   }
 
+  fun registerDevice(installId: String, model: String, language: String): Boolean {
+    val body = JSONObject()
+      .put("install_id", installId)
+      .put("model", model)
+      .put("locale", language)
+      .toString()
+
+    val request = Request.Builder()
+      .url("$baseUrl/v1/auth/register-device")
+      .post(body.toRequestBody(JSON))
+      .build()
+
+    return try {
+      client.newCall(request).execute().use { it.isSuccessful }
+    } catch (_: IOException) {
+      false
+    }
+  }
+
   fun fetchPhrases(language: String): Map<String, String>? {
     val request = Request.Builder()
       .url("$baseUrl/v1/phrases?language=$language")

@@ -67,6 +67,11 @@ class VoicePipelineBridgeManager {
     return withTimeout(VoicePipelineNativeModule.setConsent(granted), false);
   }
 
+  async registerDevice(): Promise<void> {
+    if (!VoicePipelineNativeModule) return;
+    await withTimeout(VoicePipelineNativeModule.registerDevice(), undefined);
+  }
+
   async prepareWakeWord(): Promise<void> {
     if (!VoicePipelineNativeModule) return;
     await withTimeout(VoicePipelineNativeModule.prepareWakeWord(), undefined);

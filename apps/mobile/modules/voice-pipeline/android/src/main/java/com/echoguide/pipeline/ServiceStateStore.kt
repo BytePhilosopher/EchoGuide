@@ -23,6 +23,10 @@ class ServiceStateStore(context: Context) {
     get() = prefs.getBoolean(KEY_CONSENT, false)
     set(value) = prefs.edit().putBoolean(KEY_CONSENT, value).apply()
 
+  var isRegistered: Boolean
+    get() = prefs.getBoolean(KEY_REGISTERED, false)
+    set(value) = prefs.edit().putBoolean(KEY_REGISTERED, value).apply()
+
   private fun newInstallId(): String {
     val generated = java.util.UUID.randomUUID().toString()
     prefs.edit().putString(KEY_INSTALL_ID, generated).apply()
@@ -35,6 +39,7 @@ class ServiceStateStore(context: Context) {
     const val KEY_LANGUAGE = "language"
     const val KEY_WAKE_WORD = "wake_word_enabled"
     const val KEY_CONSENT = "consent_granted"
+    const val KEY_REGISTERED = "device_registered"
     const val DEFAULT_LANGUAGE = "am-ET"
   }
 }

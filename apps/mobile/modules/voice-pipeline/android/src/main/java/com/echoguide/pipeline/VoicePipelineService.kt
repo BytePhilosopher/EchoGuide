@@ -131,6 +131,18 @@ class VoicePipelineService private constructor(private val context: Context) {
 
   fun installId(): String = state.installId
 
+  fun registerDevice() {
+    if (state.isRegistered) return
+    worker.execute {
+      val ok = api.registerDevice(
+        installId = state.installId,
+        model = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+        language = state.language,
+      )
+      if (ok) state.isRegistered = true
+    }
+  }
+
   fun refreshPhrases(language: String) {
     worker.execute {
       api.fetchPhrases(language)?.let { PhraseCatalog.applyRemote(it) }

@@ -57,6 +57,10 @@ class VoicePipelineModule : Module() {
       pipeline()?.answerConfirmation(confirmed)
     }
 
+    AsyncFunction("registerDevice") {
+      pipeline()?.registerDevice()
+    }
+
     AsyncFunction("prepareWakeWord") {
       pipeline()?.prepareWakeWord()
     }

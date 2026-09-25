@@ -57,6 +57,7 @@ interface VoicePipelineNative {
   confirmPending(confirmed: boolean): Promise<void>;
   setConsent(granted: boolean): Promise<boolean>;
   prepareWakeWord(): Promise<void>;
+  registerDevice(): Promise<void>;
   openAccessibilitySettings(): Promise<boolean>;
   openVoiceSettings(): Promise<boolean>;
   setLanguage(languageCode: LanguageCode): Promise<boolean>;
