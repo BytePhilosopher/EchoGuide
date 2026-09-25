@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
+export const CONFIDENCE_FLOOR = Number(process.env.ADDIS_CONFIDENCE_FLOOR ?? 0.6);
+
 export const ConfidenceGateSchema = z.object({
-  avg_logprob: z.number().min(-1.0, "Derived transcript is low confidence (guessing)"),
-  no_speech_prob: z.number().max(0.6, "Payload is likely background noise"),
-  compression_ratio: z.number().max(2.4, "Detected repetition loop failure mode"),
+  confidence: z
+    .number()
+    .min(CONFIDENCE_FLOOR, 'Transcript confidence below the floor'),
+  text: z.string().trim().min(1, 'Transcript was empty'),
 });

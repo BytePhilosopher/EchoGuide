@@ -63,9 +63,8 @@ commandsModule.post('/v1/commands', async (req: Request, res: Response) => {
 
     const gateMark = Date.now();
     const gateValidation = ConfidenceGateSchema.safeParse({
-      avg_logprob: sttResult.avg_logprob,
-      no_speech_prob: sttResult.no_speech_prob,
-      compression_ratio: sttResult.compression_ratio,
+      confidence: sttResult.confidence,
+      text: sttResult.text,
     });
     stageTimings.gate_ms = Date.now() - gateMark;
 

@@ -1,132 +1,126 @@
-import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
-import VoicePipelineBridgeSpec, { Spec } from './VoicePipelineBridgeSpec';
+import {
+  VoicePipelineNativeModule,
+  type CommandOutcomeCode,
+  type CommandOutcomeEvent,
+  type LanguageCode,
+  type PermissionStatus,
+  type PipelineState,
+  type PipelineStateEvent,
+  type ServiceState,
+} from '../../modules/voice-pipeline/src';
 
-export interface ServiceState {
-  isWakeWordActive: boolean;
-  isAccessibilityEnabled: boolean;
-  currentLanguage: 'am-ET' | 'en-US';
+export type {
+  CommandOutcomeCode,
+  CommandOutcomeEvent,
+  LanguageCode,
+  PermissionStatus,
+  PipelineState,
+  PipelineStateEvent,
+  ServiceState,
+};
+
+const CALL_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
+  const timeout = new Promise<T>((resolve) => setTimeout(() => resolve(fallback), CALL_TIMEOUT_MS));
+  return Promise.race([work, timeout]).catch(() => fallback);
 }
 
-export interface PermissionStatus {
-  microphoneGranted: boolean;
-  accessibilityGranted: boolean;
-  overlayGranted: boolean;
-}
+const UNAVAILABLE: ServiceState = {
+  isWakeWordActive: false,
+  isWakeWordReady: false,
+  isAccessibilityEnabled: false,
+  hasConsent: false,
+  hasVoice: false,
+  wakeWord: 'echo',
+  installId: '',
+  currentLanguage: 'am-ET',
+};
 
-export interface CommandOutcomeEvent {
-  id: string;
-  outcome: 'ACCEPTED' | 'REJECTED' | 'CONFIRMED';
-  durationMs: number;
-  timestamp: string;
-}
+const DENIED: PermissionStatus = {
+  microphoneGranted: false,
+  accessibilityGranted: false,
+  overlayGranted: false,
+};
 
-type EventListener = (event: CommandOutcomeEvent) => void;
-
-/**
- * Section 5.4 TurboModule Bridge Implementation Wrapper
- * Enforces strict bridge rules:
- * 1. No audio, no transcript, and no action plan ever crosses the bridge.
- * 2. Events are dropped (never queued) when no UI listener is active.
- * 3. Every call is fire-and-forget or has a strict timeout.
- */
 class VoicePipelineBridgeManager {
-  private listeners: Set<EventListener> = new Set();
-  private emitter: NativeEventEmitter | null = null;
+  readonly isNativeAvailable = VoicePipelineNativeModule != null;
 
-  constructor() {
-    if (Platform.OS === 'android' && NativeModules.VoicePipelineBridge) {
-      this.emitter = new NativeEventEmitter(NativeModules.VoicePipelineBridge);
-      this.emitter.addListener('onLastCommandOutcome', (event: CommandOutcomeEvent) => {
-        // Drop events if no UI is actively listening (Rule §5.4)
-        if (this.listeners.size > 0) {
-          this.listeners.forEach((listener) => listener(event));
-        }
-      });
-    }
-  }
-
-  // Commands (JS -> Kotlin) - Fire and Forget
   startListening(): void {
-    try {
-      VoicePipelineBridgeSpec?.startListening();
-    } catch (e) {
-      console.warn('[VoicePipelineBridge] startListening fallback/error:', e);
-    }
+    VoicePipelineNativeModule?.startListening();
   }
 
   stopListening(): void {
-    try {
-      VoicePipelineBridgeSpec?.stopListening();
-    } catch (e) {
-      console.warn('[VoicePipelineBridge] stopListening fallback/error:', e);
-    }
+    VoicePipelineNativeModule?.stopListening();
   }
 
-  // Timeout-guarded command (§5.4 rule: Every call has a timeout)
-  async setLanguage(languageCode: 'am-ET' | 'en-US'): Promise<boolean> {
-    const timeout = new Promise<boolean>((_, reject) =>
-      setTimeout(() => reject(new Error('setLanguage timeout after 3000ms')), 3000)
-    );
+  triggerListening(): void {
+    VoicePipelineNativeModule?.triggerListening();
+  }
 
-    try {
-      const resultPromise = VoicePipelineBridgeSpec?.setLanguage(languageCode) ?? Promise.resolve(true);
-      return await Promise.race([resultPromise, timeout]);
-    } catch (e) {
-      console.warn('[VoicePipelineBridge] setLanguage error:', e);
-      return false;
-    }
+  async confirmPending(confirmed: boolean): Promise<void> {
+    if (!VoicePipelineNativeModule) return;
+    await withTimeout(VoicePipelineNativeModule.confirmPending(confirmed), undefined);
+  }
+
+  async setConsent(granted: boolean): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.setConsent(granted), false);
+  }
+
+  async setWakeWord(phrase: string): Promise<string> {
+    if (!VoicePipelineNativeModule) return phrase;
+    return withTimeout(VoicePipelineNativeModule.setWakeWord(phrase), phrase);
+  }
+
+  async registerDevice(): Promise<void> {
+    if (!VoicePipelineNativeModule) return;
+    await withTimeout(VoicePipelineNativeModule.registerDevice(), undefined);
+  }
+
+  async prepareWakeWord(): Promise<void> {
+    if (!VoicePipelineNativeModule) return;
+    await withTimeout(VoicePipelineNativeModule.prepareWakeWord(), undefined);
+  }
+
+  async openAccessibilitySettings(): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.openAccessibilitySettings(), false);
+  }
+
+  async openVoiceSettings(): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.openVoiceSettings(), false);
+  }
+
+  async setLanguage(languageCode: LanguageCode): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.setLanguage(languageCode), false);
   }
 
   async revokeConsent(): Promise<void> {
-    const timeout = new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error('revokeConsent timeout after 3000ms')), 3000)
-    );
-
-    try {
-      const resultPromise = VoicePipelineBridgeSpec?.revokeConsent() ?? Promise.resolve();
-      await Promise.race([resultPromise, timeout]);
-    } catch (e) {
-      console.warn('[VoicePipelineBridge] revokeConsent error:', e);
-    }
+    if (!VoicePipelineNativeModule) return;
+    await withTimeout(VoicePipelineNativeModule.revokeConsent(), undefined);
   }
 
-  // Queries (JS -> Kotlin)
   async getServiceState(): Promise<ServiceState> {
-    try {
-      if (VoicePipelineBridgeSpec) {
-        const state = await VoicePipelineBridgeSpec.getServiceState();
-        return {
-          isWakeWordActive: state.isWakeWordActive,
-          isAccessibilityEnabled: state.isAccessibilityEnabled,
-          currentLanguage: (state.currentLanguage as 'am-ET' | 'en-US') || 'am-ET',
-        };
-      }
-    } catch (e) {
-      console.warn('[VoicePipelineBridge] getServiceState fallback:', e);
-    }
-
-    // Default fallback state for web / dev preview
-    return {
-      isWakeWordActive: true,
-      isAccessibilityEnabled: true,
-      currentLanguage: 'am-ET',
-    };
+    if (!VoicePipelineNativeModule) return UNAVAILABLE;
+    return withTimeout(VoicePipelineNativeModule.getServiceState(), UNAVAILABLE);
   }
 
   async getPermissionStatus(): Promise<PermissionStatus> {
-    return {
-      microphoneGranted: true,
-      accessibilityGranted: true,
-      overlayGranted: true,
-    };
+    if (!VoicePipelineNativeModule) return DENIED;
+    return withTimeout(VoicePipelineNativeModule.getPermissionStatus(), DENIED);
   }
 
-  // Event Subscription System - Drops when no listeners attached
-  subscribeToOutcomes(listener: EventListener): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+  subscribeToOutcomes(listener: (event: CommandOutcomeEvent) => void): () => void {
+    const subscription = VoicePipelineNativeModule?.addListener('onLastCommandOutcome', listener);
+    return () => subscription?.remove();
+  }
+
+  subscribeToState(listener: (event: PipelineStateEvent) => void): () => void {
+    const subscription = VoicePipelineNativeModule?.addListener('onPipelineState', listener);
+    return () => subscription?.remove();
   }
 }
 

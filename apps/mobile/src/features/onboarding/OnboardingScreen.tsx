@@ -1,284 +1,158 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-  Alert,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Check } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
-import { Card, PrimaryButton, StatusBadge } from '../../design/SharedComponents';
-import { VoicePipelineBridge, ServiceState } from '../../native/VoicePipelineBridge';
+import {
+  Card,
+  Divider,
+  PrimaryButton,
+  SectionHeader,
+  SettingRow,
+  StatusBadge,
+} from '../../design/SharedComponents';
+import {
+  VoicePipelineBridge,
+  type LanguageCode,
+  type ServiceState,
+} from '../../native/VoicePipelineBridge';
+import { useAppState } from '../../state/AppStateContext';
+import { t } from '../../i18n/strings';
 
 interface OnboardingScreenProps {
   onComplete?: () => void;
 }
 
+const LANGUAGES: { code: LanguageCode; native: string; descKey: 'amharicDesc' | 'englishDesc' }[] = [
+  { code: 'am-ET', native: 'አማርኛ', descKey: 'amharicDesc' },
+  { code: 'en-US', native: 'English', descKey: 'englishDesc' },
+];
+
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
-  const [selectedLang, setSelectedLang] = useState<'am-ET' | 'en-US'>('am-ET');
-  const [consentGranted, setConsentGranted] = useState<boolean>(true);
-  const [serviceState, setServiceState] = useState<ServiceState>({
-    isWakeWordActive: false,
-    isAccessibilityEnabled: false,
-    currentLanguage: 'am-ET',
-  });
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { dispatch } = useAppState();
+  const [lang, setLang] = useState<LanguageCode>('am-ET');
+  const [consentGranted, setConsentGranted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [service, setService] = useState<ServiceState | null>(null);
 
   useEffect(() => {
-    VoicePipelineBridge.getServiceState().then(setServiceState);
+    VoicePipelineBridge.getServiceState().then(setService);
   }, []);
 
-  const handleLanguageSelect = async (lang: 'am-ET' | 'en-US') => {
-    setSelectedLang(lang);
-    await VoicePipelineBridge.setLanguage(lang);
+  const handleLanguage = async (next: LanguageCode) => {
+    setLang(next);
+    await VoicePipelineBridge.setLanguage(next);
   };
 
-  const handleFinishOnboarding = async () => {
+  const handleFinish = async () => {
     if (!consentGranted) {
-      Alert.alert(
-        'Consent Required / ፈቃድ ያስፈልጋል',
-        'EchoGuide requires consent to process voice commands for accessibility automation.'
-      );
+      Alert.alert(t('consentRequired', lang), t('consentRequiredBody', lang));
       return;
     }
-
     setIsSubmitting(true);
-    await VoicePipelineBridge.setLanguage(selectedLang);
+    await VoicePipelineBridge.setLanguage(lang);
+    await VoicePipelineBridge.setConsent(true);
+    await VoicePipelineBridge.registerDevice();
+    dispatch({ type: 'SET_LANGUAGE', language: lang });
+    dispatch({ type: 'SET_CONSENT', granted: true });
     setIsSubmitting(false);
-
-    if (onComplete) {
-      onComplete();
-    }
+    onComplete?.();
   };
+
+  const accessibilityOn = service?.isAccessibilityEnabled ?? false;
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      accessibilityLabel="Onboarding Setup Screen"
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      accessibilityLabel={t('onboardingScreenLabel', lang)}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.headerBox}>
-        <View style={styles.badgeRow}>
-          <View style={styles.logoBadge}>
-            <Text style={{ fontSize: 24 }}>🎙️</Text>
-          </View>
-        </View>
-        <Text style={styles.title} accessibilityRole="header">
-          Welcome to EchoGuide
-        </Text>
-        <Text style={styles.subtitle}>
-          Bilingual Voice Control for Android • ድምጽ መቆጣጠሪያ
-        </Text>
-      </View>
+      <Text style={styles.title} accessibilityRole="header">
+        {t('welcomeTitle', lang)}
+      </Text>
+      <Text style={styles.subtitle}>{t('welcomeSubtitle', lang)}</Text>
 
-      {/* Language Selection Card (§1, §5.3) */}
-      <Card style={styles.card} accessibilityLabel="Language Choice Container">
-        <Text style={styles.stepTitle}>Step 1. Choose Primary Language</Text>
-        <Text style={styles.cardSubtitle}>
-          Transcripts and Text-to-Speech will default to your selection.
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.langButton, selectedLang === 'am-ET' && styles.langButtonActive]}
-          onPress={() => handleLanguageSelect('am-ET')}
-          activeOpacity={0.8}
-        >
-          <Text style={{ fontSize: 22, marginRight: 12 }}>🇪🇹</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.langTitle}>አማርኛ (Amharic)</Text>
-            <Text style={styles.langDesc}>Addis AI Cloud STT Engine • 3% WER</Text>
-          </View>
-          {selectedLang === 'am-ET' && <Text style={styles.checkIcon}>✓</Text>}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.langButton, selectedLang === 'en-US' && styles.langButtonActive]}
-          onPress={() => handleLanguageSelect('en-US')}
-          activeOpacity={0.8}
-        >
-          <Text style={{ fontSize: 22, marginRight: 12 }}>🇺🇸</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.langTitle}>English (US)</Text>
-            <Text style={styles.langDesc}>On-Device Android Engine • Ultra low latency</Text>
-          </View>
-          {selectedLang === 'en-US' && <Text style={styles.checkIcon}>✓</Text>}
-        </TouchableOpacity>
+      <SectionHeader title={t('step1Title', lang)} subtitle={t('step1Subtitle', lang)} />
+      <Card>
+        {LANGUAGES.map((option, index) => {
+          const isSelected = lang === option.code;
+          return (
+            <React.Fragment key={option.code}>
+              {index > 0 ? <Divider spacing={Theme.spacing.sm} /> : null}
+              <Pressable
+                onPress={() => handleLanguage(option.code)}
+                accessibilityRole="radio"
+                accessibilityLabel={option.native}
+                accessibilityState={{ selected: isSelected }}
+                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+              >
+                <View style={styles.optionText}>
+                  <Text style={styles.optionTitle}>{option.native}</Text>
+                  <Text style={styles.optionDesc}>{t(option.descKey, lang)}</Text>
+                </View>
+                {isSelected ? <Check size={22} color={Theme.colors.accent} strokeWidth={2.25} /> : null}
+              </Pressable>
+            </React.Fragment>
+          );
+        })}
       </Card>
 
-      {/* Consent & Privacy Card (§9.3, §10.1) */}
-      <Card style={styles.card} accessibilityLabel="Privacy and Consent Container">
-        <Text style={styles.stepTitle}>Step 2. Privacy & Voice Consent</Text>
-        <Text style={styles.cardBody}>
-          EchoGuide processes audio buffers exclusively to execute spoken commands.
-          By default, zero audio recordings or spoken transcripts are stored (§9.1).
-        </Text>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>
-            Grant Voice Data Processing Consent
-          </Text>
-          <Switch
-            value={consentGranted}
-            onValueChange={setConsentGranted}
-            trackColor={{ false: Theme.colors.border, true: Theme.colors.primary }}
-            thumbColor={consentGranted ? '#FFFFFF' : Theme.colors.textMuted}
-          />
-        </View>
-      </Card>
-
-      {/* Accessibility Service Status Card (§D1, §5.3) */}
-      <Card style={styles.card} accessibilityLabel="Accessibility Service Status Container">
-        <Text style={styles.stepTitle}>Step 3. Android Accessibility Service</Text>
-        <Text style={styles.cardBody}>
-          EchoGuide requires AccessibilityService permissions to perform tap gestures, scroll views, and assist navigation.
-        </Text>
-
-        <View style={styles.statusBox}>
-          <StatusBadge
-            status={serviceState.isAccessibilityEnabled ? 'active' : 'inactive'}
-            label={serviceState.isAccessibilityEnabled ? 'SERVICE ACTIVE' : 'SETUP REQUIRED'}
-          />
-          <Text style={styles.statusNote}>
-            {serviceState.isAccessibilityEnabled
-              ? 'Kotlin Native Accessibility Service is connected.'
-              : 'Will prompt for Android Settings permission.'}
-          </Text>
-        </View>
-      </Card>
-
-      {/* Finish Button */}
-      <View style={{ marginTop: Theme.spacing.md, marginBottom: Theme.spacing.lg }}>
-        <PrimaryButton
-          title={isSubmitting ? 'Configuring Assistant...' : 'Complete Setup & Launch'}
-          onPress={handleFinishOnboarding}
-          variant="glow"
-          disabled={!consentGranted || isSubmitting}
-          icon="🚀"
+      <SectionHeader title={t('step2Title', lang)} />
+      <Card>
+        <Text style={styles.body}>{t('step2Body', lang)}</Text>
+        <Divider spacing={Theme.spacing.sm} />
+        <SettingRow
+          label={t('grantConsent', lang)}
+          value={consentGranted}
+          onValueChange={setConsentGranted}
         />
-      </View>
+      </Card>
+
+      <SectionHeader title={t('step3Title', lang)} />
+      <Card>
+        <Text style={styles.body}>{t('step3Body', lang)}</Text>
+        <View style={styles.statusRow}>
+          <StatusBadge
+            tone={accessibilityOn ? 'positive' : 'neutral'}
+            label={accessibilityOn ? t('serviceActive', lang) : t('serviceSetupNeeded', lang)}
+          />
+        </View>
+        <Text style={styles.hint}>
+          {accessibilityOn ? t('serviceConnected', lang) : t('serviceWillPrompt', lang)}
+        </Text>
+      </Card>
+
+      <PrimaryButton
+        title={t('finishSetup', lang)}
+        onPress={handleFinish}
+        disabled={!consentGranted}
+        loading={isSubmitting}
+        style={styles.finish}
+      />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  contentContainer: {
-    padding: Theme.spacing.md,
+  screen: { flex: 1, backgroundColor: Theme.colors.ground },
+  content: {
+    paddingHorizontal: Theme.spacing.md,
     paddingTop: Theme.spacing.xl,
     paddingBottom: Theme.spacing.xxl,
   },
-  headerBox: {
-    marginBottom: Theme.spacing.lg,
-    alignItems: 'center',
-  },
-  badgeRow: {
-    marginBottom: Theme.spacing.sm,
-  },
-  logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Theme.colors.primaryMuted,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Theme.shadow.glow,
-  },
-  title: {
-    fontSize: Theme.typography.fontSizeDisplay,
-    fontWeight: '900',
-    color: Theme.colors.text,
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
+  title: { ...Theme.type.display, color: Theme.colors.strong },
   subtitle: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.textMuted,
-    textAlign: 'center',
-    marginTop: 4,
+    ...Theme.type.body,
+    color: Theme.colors.base,
+    marginTop: Theme.spacing.sm,
   },
-  card: {
-    backgroundColor: Theme.colors.cardBackground,
-    marginBottom: Theme.spacing.md,
-  },
-  stepTitle: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '800',
-    color: Theme.colors.primary,
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginBottom: Theme.spacing.md,
-  },
-  cardBody: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.textMuted,
-    lineHeight: 20,
-    marginBottom: Theme.spacing.md,
-  },
-  langButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    marginBottom: Theme.spacing.xs,
-    backgroundColor: Theme.colors.surfaceElevated,
-  },
-  langButtonActive: {
-    borderColor: Theme.colors.primary,
-    backgroundColor: Theme.colors.primaryMuted,
-    ...Theme.shadow.glow,
-  },
-  langTitle: {
-    fontSize: Theme.typography.fontSizeBody,
-    fontWeight: '700',
-    color: Theme.colors.text,
-  },
-  langDesc: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-  },
-  checkIcon: {
-    color: Theme.colors.primary,
-    fontWeight: '900',
-    fontSize: 18,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Theme.spacing.xs,
-  },
-  switchLabel: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.text,
-    flex: 1,
-    fontWeight: '600',
-    paddingRight: 10,
-  },
-  statusBox: {
-    backgroundColor: Theme.colors.surfaceElevated,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    alignItems: 'flex-start',
-  },
-  statusNote: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: Theme.spacing.xs,
-  },
+  option: { flexDirection: 'row', alignItems: 'center', minHeight: Theme.touchTarget },
+  optionPressed: { opacity: 0.7 },
+  optionText: { flex: 1, paddingRight: Theme.spacing.md },
+  optionTitle: { ...Theme.type.body, color: Theme.colors.strong },
+  optionDesc: { ...Theme.type.caption, color: Theme.colors.muted, marginTop: 2 },
+  body: { ...Theme.type.body, color: Theme.colors.base },
+  statusRow: { marginTop: Theme.spacing.md },
+  hint: { ...Theme.type.caption, color: Theme.colors.muted, marginTop: Theme.spacing.sm },
+  finish: { marginTop: Theme.spacing.xl },
 });

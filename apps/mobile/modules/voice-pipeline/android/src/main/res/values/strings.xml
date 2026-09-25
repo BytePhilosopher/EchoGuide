@@ -1,0 +1,8 @@
+<resources>
+  <string name="accessibility_service_label">EchoGuide</string>
+  <string name="accessibility_service_description">EchoGuide performs the interface actions you ask for by voice, in the apps already on your phone.</string>
+  <string name="pipeline_notification_channel">Voice control</string>
+  <string name="pipeline_notification_title">EchoGuide is listening</string>
+  <string name="pipeline_notification_body">Say your command, or stop listening from here.</string>
+  <string name="pipeline_notification_stop">Stop listening</string>
+</resources>

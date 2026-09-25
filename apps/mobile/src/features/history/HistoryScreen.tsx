@@ -1,221 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Inbox } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
-import { Card, StatusBadge, Divider } from '../../design/SharedComponents';
-import { VoicePipelineBridge, CommandOutcomeEvent } from '../../native/VoicePipelineBridge';
+import { Card, EmptyState, StatusBadge, type StatusTone } from '../../design/SharedComponents';
+import { useAppState } from '../../state/AppStateContext';
+import { type CommandOutcomeCode } from '../../native/VoicePipelineBridge';
+import { t, type StringKey } from '../../i18n/strings';
 
-const mockInitialHistory: CommandOutcomeEvent[] = [
-  { id: '1', timestamp: '2026-09-24 20:14:10', outcome: 'ACCEPTED', durationMs: 1420 },
-  { id: '2', timestamp: '2026-09-24 19:48:45', outcome: 'CONFIRMED', durationMs: 2350 },
-  { id: '3', timestamp: '2026-09-24 18:05:02', outcome: 'REJECTED', durationMs: 650 },
-  { id: '4', timestamp: '2026-09-24 16:22:18', outcome: 'ACCEPTED', durationMs: 1100 },
-];
+type Filter = 'ALL' | CommandOutcomeCode;
+
+const FILTERS: Filter[] = ['ALL', 'done', 'blocked', 'rejected', 'failed'];
+
+const OUTCOME_KEY: Record<CommandOutcomeCode, StringKey> = {
+  done: 'outcomeDone',
+  failed: 'outcomeFailed',
+  rejected: 'outcomeRejected',
+  blocked: 'outcomeBlocked',
+  cancelled: 'outcomeCancelled',
+};
+
+const OUTCOME_TONE: Record<CommandOutcomeCode, StatusTone> = {
+  done: 'positive',
+  failed: 'negative',
+  rejected: 'neutral',
+  blocked: 'negative',
+  cancelled: 'neutral',
+};
 
 export const HistoryScreen: React.FC = () => {
-  const [history, setHistory] = useState<CommandOutcomeEvent[]>(mockInitialHistory);
-  const [filter, setFilter] = useState<'ALL' | 'ACCEPTED' | 'CONFIRMED' | 'REJECTED'>('ALL');
+  const { state } = useAppState();
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const language = state.selectedLanguage;
 
-  useEffect(() => {
-    const unsubscribe = VoicePipelineBridge.subscribeToOutcomes((event) => {
-      setHistory((prev) => [event, ...prev]);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  const filteredHistory = history.filter((item) => {
-    if (filter === 'ALL') return true;
-    return item.outcome === filter;
-  });
-
-  const renderBadge = (outcome: CommandOutcomeEvent['outcome']) => {
-    switch (outcome) {
-      case 'ACCEPTED':
-        return <StatusBadge status="done" label="✓ ACCEPTED" />;
-      case 'CONFIRMED':
-        return <StatusBadge status="confirmed" label="🛡️ CONFIRMED" />;
-      case 'REJECTED':
-        return <StatusBadge status="rejected" label="✕ REJECTED" />;
-    }
-  };
+  const label = (outcome: CommandOutcomeCode) => t(OUTCOME_KEY[outcome], language);
+  const history = state.commandHistory;
+  const visible = filter === 'ALL' ? history : history.filter((item) => item.outcome === filter);
 
   return (
-    <View style={styles.container} accessibilityLabel="Command Outcome History Screen">
-      {/* Header */}
-      <View style={styles.headerBox}>
-        <Text style={styles.header} accessibilityRole="header">
-          Command Outcomes
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          {t('historyTitle', language)}
         </Text>
-        <Text style={styles.subHeader}>
-          Real-time execution log from native voice bridge (§5.4)
-        </Text>
+        <Text style={styles.subtitle}>{t('historySubtitle', language)}</Text>
+      </View>
 
-        <Card style={styles.privacyNoteCard}>
-          <View style={styles.privacyNoteRow}>
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🔒</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.privacyTitle}>Zero-Persistence Privacy (§9.1)</Text>
-              <Text style={styles.privacyDesc}>
-                No spoken transcripts or raw audio recordings are stored locally or transmitted.
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+        style={styles.filterStrip}
+      >
+        {FILTERS.map((f) => {
+          const chipLabel = f === 'ALL' ? t('filterAll', language) : label(f);
+          const isActive = filter === f;
+          return (
+            <Pressable
+              key={f}
+              onPress={() => setFilter(f)}
+              accessibilityRole="button"
+              accessibilityLabel={chipLabel}
+              accessibilityState={{ selected: isActive }}
+              style={({ pressed }) => [
+                styles.chip,
+                isActive && styles.chipActive,
+                pressed && styles.chipPressed,
+              ]}
+            >
+              <Text style={[styles.chipLabel, isActive && styles.chipLabelActive]}>
+                {chipLabel}
               </Text>
-            </View>
-          </View>
-        </Card>
-      </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
-      {/* Filter Chips */}
-      <View style={styles.filterRow}>
-        {(['ALL', 'ACCEPTED', 'CONFIRMED', 'REJECTED'] as const).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterChip, filter === f && styles.filterChipActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-              {f}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* History List */}
       <FlatList
-        data={filteredHistory}
+        data={visible}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <EmptyState
+            icon={Inbox}
+            title={history.length === 0 ? t('historyEmpty', language) : t('emptyFilter', language)}
+          />
+        }
         renderItem={({ item }) => (
-          <Card style={styles.itemCard}>
-            <View style={styles.cardHeader}>
-              {renderBadge(item.outcome)}
-              <Text style={styles.durationText}>{item.durationMs}ms</Text>
+          <Card
+            style={styles.row}
+            accessible
+            accessibilityLabel={`${label(item.outcome)}, ${Math.round(item.durationMs / 100) / 10}s`}
+          >
+            <View style={styles.rowTop}>
+              <StatusBadge tone={OUTCOME_TONE[item.outcome]} label={label(item.outcome)} />
+              <Text style={styles.duration}>{(item.durationMs / 1000).toFixed(1)}s</Text>
             </View>
-
-            <Divider spacing={Theme.spacing.xs} />
-
-            <View style={styles.cardFooter}>
-              <Text style={styles.metaText}>📅 {item.timestamp}</Text>
-              <Text style={styles.latencyLabel}>Pipeline Latency</Text>
-            </View>
+            <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleString()}</Text>
           </Card>
         )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={{ fontSize: 32, marginBottom: 8 }}>📭</Text>
-            <Text style={styles.emptyText}>No outcomes match the selected filter</Text>
-          </View>
-        }
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: Theme.spacing.md,
-    backgroundColor: Theme.colors.background,
-  },
-  headerBox: {
-    marginBottom: Theme.spacing.sm,
+    backgroundColor: Theme.colors.ground,
   },
   header: {
-    fontSize: Theme.typography.fontSizeHero,
-    fontWeight: '900',
-    color: Theme.colors.text,
-    letterSpacing: -0.5,
+    paddingHorizontal: Theme.spacing.md,
+    paddingTop: Theme.spacing.sm,
   },
-  subHeader: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-    marginBottom: Theme.spacing.md,
+  title: {
+    ...Theme.type.display,
+    color: Theme.colors.strong,
   },
-  privacyNoteCard: {
-    backgroundColor: Theme.colors.surfaceElevated,
-    borderColor: Theme.colors.border,
-    padding: Theme.spacing.sm,
+  subtitle: {
+    ...Theme.type.body,
+    color: Theme.colors.muted,
+    marginTop: Theme.spacing.xs,
   },
-  privacyNoteRow: {
+  filterStrip: {
+    flexGrow: 0,
+    marginTop: Theme.spacing.md,
+  },
+  filters: {
+    paddingHorizontal: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+  },
+  chip: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Theme.spacing.md,
+    borderRadius: Theme.radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Theme.colors.line,
+  },
+  chipActive: {
+    backgroundColor: Theme.colors.strong,
+    borderColor: Theme.colors.strong,
+  },
+  chipPressed: {
+    opacity: 0.7,
+  },
+  chipLabel: {
+    ...Theme.type.label,
+    color: Theme.colors.base,
+  },
+  chipLabelActive: {
+    color: Theme.colors.ground,
+  },
+  list: {
+    padding: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+    flexGrow: 1,
+  },
+  row: {
+    paddingVertical: Theme.spacing.md,
+  },
+  rowTop: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  privacyTitle: {
-    fontSize: Theme.typography.fontSizeSmall,
-    fontWeight: '700',
-    color: Theme.colors.primary,
-  },
-  privacyDesc: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-    lineHeight: 15,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: Theme.spacing.md,
-  },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: Theme.colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: Theme.colors.primaryMuted,
-    borderColor: Theme.colors.primary,
-  },
-  filterChipText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '700',
-  },
-  filterChipTextActive: {
-    color: Theme.colors.primary,
-  },
-  listContent: {
-    paddingBottom: Theme.spacing.xxl,
-  },
-  itemCard: {
-    marginBottom: Theme.spacing.sm,
-    backgroundColor: Theme.colors.cardBackground,
-  },
-  cardHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
+  duration: {
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
   },
-  durationText: {
-    fontSize: Theme.typography.fontSizeBody,
-    fontWeight: '900',
-    color: Theme.colors.primary,
-  },
-  metaText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-  },
-  latencyLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Theme.spacing.xxl,
-  },
-  emptyText: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.textMuted,
+  timestamp: {
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
+    marginTop: Theme.spacing.sm,
   },
 });

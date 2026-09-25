@@ -1,0 +1,31 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'com.echoguide.voice'
+version = '1.0.0'
+
+android {
+  namespace 'com.echoguide.voice'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+    buildConfigField 'String', 'API_BASE_URL', "\"${project.findProperty('echoguide.apiBaseUrl') ?: 'http://10.0.2.2:4000'}\""
+    buildConfigField 'String', 'VOSK_MODEL_URL', "\"${project.findProperty('echoguide.voskModelUrl') ?: 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip'}\""
+  }
+  buildFeatures {
+    buildConfig true
+  }
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
+}
+
+dependencies {
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  implementation 'com.alphacephei:vosk-android:0.3.75'
+
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.json:json:20231013'
+  testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+  testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
+}

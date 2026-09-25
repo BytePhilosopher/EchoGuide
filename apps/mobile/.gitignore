@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+
+# android/ is source, not prebuild output. Never run `expo prebuild` against it —
+# the AccessibilityService declaration in modules/voice-pipeline does not survive
+# regeneration.
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+android/local.properties
+modules/voice-pipeline/android/build/
+
+*.keystore
+!debug.keystore
+android/.kotlin/

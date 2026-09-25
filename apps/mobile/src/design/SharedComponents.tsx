@@ -1,360 +1,291 @@
 import React from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Pressable,
   StyleSheet,
-  TouchableOpacity,
   Switch,
-  ViewStyle,
+  Text,
+  View,
+  type AccessibilityRole,
+  type ViewStyle,
 } from 'react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { Theme } from './theme';
 
-/* ─── Card ────────────────────────────────────────────────────── */
-interface CardProps {
+interface SurfaceProps {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
-  elevated?: boolean;
+
+  accessible?: boolean;
+  accessibilityLabel?: string;
+  accessibilityRole?: AccessibilityRole;
 }
-export const Card: React.FC<CardProps> = ({ children, style, elevated }) => (
+
+export const Card: React.FC<SurfaceProps> = ({
+  children,
+  style,
+  accessible,
+  accessibilityLabel,
+  accessibilityRole,
+}) => (
   <View
-    style={[
-      styles.card,
-      elevated && Theme.shadow.elevated,
-      style,
-    ]}
+    style={[styles.card, style]}
+    accessible={accessible}
+    accessibilityLabel={accessibilityLabel}
+    accessibilityRole={accessibilityRole}
   >
     {children}
   </View>
 );
 
-/* ─── Section Header ──────────────────────────────────────────── */
-interface SectionHeaderProps {
-  title: string;
-  subtitle?: string;
-  badge?: string;
-}
-export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, subtitle, badge }) => (
+export const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({
+  title,
+  subtitle,
+}) => (
   <View style={styles.sectionHeader}>
-    <View style={styles.sectionTitleRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {badge && (
-        <View style={styles.sectionBadge}>
-          <Text style={styles.sectionBadgeText}>{badge}</Text>
-        </View>
-      )}
-    </View>
-    {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
+    <Text style={styles.overline} accessibilityRole="header">
+      {title}
+    </Text>
+    {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
   </View>
 );
 
-/* ─── Setting Row ─────────────────────────────────────────────── */
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'danger';
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: LucideIcon;
+  style?: ViewStyle | ViewStyle[];
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}
+
+export const PrimaryButton: React.FC<ButtonProps> = ({
+  title,
+  onPress,
+  variant = 'primary',
+  disabled,
+  loading,
+  icon: Icon,
+  style,
+  accessibilityLabel,
+  accessibilityHint,
+}) => {
+  const isDisabled = disabled || loading;
+  const tone = BUTTON_TONES[variant];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
+      style={({ pressed }) => [
+        styles.button,
+        { backgroundColor: tone.bg, borderColor: tone.border },
+        pressed && !isDisabled && styles.buttonPressed,
+        isDisabled && styles.buttonDisabled,
+        style,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={tone.ink} size="small" />
+      ) : (
+        <>
+          {Icon ? <Icon size={20} color={isDisabled ? Theme.colors.muted : tone.ink} /> : null}
+          <Text
+            style={[
+              styles.buttonLabel,
+              { color: isDisabled ? Theme.colors.muted : tone.ink },
+              Icon ? styles.buttonLabelWithIcon : null,
+            ]}
+            numberOfLines={2}
+          >
+            {title}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+};
+
+const BUTTON_TONES = {
+  primary: { bg: Theme.colors.accent, ink: Theme.colors.accentInk, border: Theme.colors.accent },
+  secondary: { bg: 'transparent', ink: Theme.colors.strong, border: Theme.colors.lineStrong },
+  danger: { bg: 'transparent', ink: Theme.colors.danger, border: Theme.colors.danger },
+} as const;
+
+export type StatusTone = 'positive' | 'negative' | 'neutral';
+
+export const StatusBadge: React.FC<{ tone: StatusTone; label: string }> = ({ tone, label }) => {
+  const style = STATUS_TONES[tone];
+  return (
+    <View style={[styles.badge, { borderColor: style.border, backgroundColor: style.bg }]}>
+      <View style={[styles.badgeDot, { backgroundColor: style.ink }]} />
+      <Text style={[styles.badgeLabel, { color: style.ink }]}>{label}</Text>
+    </View>
+  );
+};
+
+const STATUS_TONES = {
+  positive: { ink: Theme.colors.accent, bg: Theme.colors.accentSoft, border: 'rgba(224,182,74,0.35)' },
+  negative: { ink: Theme.colors.danger, bg: Theme.colors.dangerSoft, border: 'rgba(240,133,125,0.35)' },
+  neutral: { ink: Theme.colors.muted, bg: 'transparent', border: Theme.colors.line },
+} as const;
+
 interface SettingRowProps {
-  icon?: string;
   label: string;
   description?: string;
-  value?: boolean;
-  onValueChange?: (v: boolean) => void;
-  rightElement?: React.ReactNode;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
 }
+
 export const SettingRow: React.FC<SettingRowProps> = ({
-  icon,
   label,
   description,
   value,
   onValueChange,
-  rightElement,
 }) => (
   <View style={styles.settingRow}>
-    {icon && (
-      <View style={styles.settingIcon}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
-      </View>
-    )}
-    <View style={{ flex: 1, paddingRight: Theme.spacing.xs }}>
+    <View style={styles.settingText}>
       <Text style={styles.settingLabel}>{label}</Text>
-      {description && <Text style={styles.settingDescription}>{description}</Text>}
+      {description ? <Text style={styles.settingDescription}>{description}</Text> : null}
     </View>
-    {onValueChange !== undefined && value !== undefined ? (
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: Theme.colors.border, true: Theme.colors.primary }}
-        thumbColor={value ? '#FFFFFF' : Theme.colors.textMuted}
-      />
-    ) : (
-      rightElement
-    )}
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      accessibilityLabel={label}
+      accessibilityHint={description}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      trackColor={{ false: Theme.colors.line, true: Theme.colors.accent }}
+      thumbColor={Theme.colors.strong}
+    />
   </View>
 );
 
-/* ─── Primary Button ──────────────────────────────────────────── */
-interface PrimaryButtonProps {
-  title: string;
-  onPress: () => void;
-  disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'glow';
-  icon?: string;
-  style?: ViewStyle | ViewStyle[];
-}
-export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
+export const EmptyState: React.FC<{ icon?: LucideIcon; title: string; body?: string }> = ({
+  icon: Icon,
   title,
-  onPress,
-  disabled,
-  variant = 'primary',
-  icon,
-  style,
-}) => {
-  const bgMap: Record<string, string> = {
-    primary: Theme.colors.primary,
-    secondary: Theme.colors.secondary,
-    danger: Theme.colors.danger,
-    ghost: 'transparent',
-    glow: Theme.colors.primary,
-  };
-  const textMap: Record<string, string> = {
-    primary: '#080C14',
-    secondary: '#FFFFFF',
-    danger: '#FFFFFF',
-    ghost: Theme.colors.textSecondary,
-    glow: '#080C14',
-  };
-  const borderMap: Record<string, string> = {
-    primary: Theme.colors.primary,
-    secondary: Theme.colors.secondary,
-    danger: Theme.colors.danger,
-    ghost: Theme.colors.border,
-    glow: Theme.colors.primary,
-  };
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.primaryButton,
-        {
-          backgroundColor: disabled ? Theme.colors.borderSubtle : bgMap[variant],
-          borderColor: disabled ? Theme.colors.border : borderMap[variant],
-        },
-        variant === 'glow' && !disabled && Theme.shadow.glow,
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-    >
-      {icon && <Text style={{ fontSize: 18, marginRight: 8 }}>{icon}</Text>}
-      <Text
-        style={[
-          styles.primaryButtonText,
-          { color: disabled ? Theme.colors.textMuted : textMap[variant] },
-        ]}
-      >
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
-};
-
-/* ─── Status Badge ────────────────────────────────────────────── */
-interface StatusBadgeProps {
-  status: 'done' | 'failed' | 'rejected' | 'blocked' | 'cancelled' | 'confirmed' | 'active' | 'inactive';
-  label?: string;
-}
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
-  const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-    done: { bg: Theme.colors.successMuted, text: Theme.colors.success, border: 'rgba(16, 185, 129, 0.4)' },
-    confirmed: { bg: Theme.colors.primaryMuted, text: Theme.colors.primary, border: 'rgba(0, 229, 255, 0.4)' },
-    active: { bg: Theme.colors.successMuted, text: Theme.colors.success, border: 'rgba(16, 185, 129, 0.4)' },
-    failed: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger, border: 'rgba(239, 68, 68, 0.4)' },
-    rejected: { bg: Theme.colors.dangerMuted, text: Theme.colors.danger, border: 'rgba(239, 68, 68, 0.4)' },
-    blocked: { bg: Theme.colors.warningMuted, text: Theme.colors.warning, border: 'rgba(245, 158, 11, 0.4)' },
-    cancelled: { bg: Theme.colors.warningMuted, text: Theme.colors.warning, border: 'rgba(245, 158, 11, 0.4)' },
-    inactive: { bg: Theme.colors.borderSubtle, text: Theme.colors.textMuted, border: Theme.colors.border },
-  };
-  const colors = colorMap[status] || colorMap.inactive;
-
-  return (
-    <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-      <Text style={[styles.badgeText, { color: colors.text }]}>
-        {label || status.toUpperCase()}
-      </Text>
-    </View>
-  );
-};
-
-/* ─── Icon Circle ─────────────────────────────────────────────── */
-interface IconCircleProps {
-  icon: string;
-  color: string;
-  bgColor: string;
-  size?: number;
-}
-export const IconCircle: React.FC<IconCircleProps> = ({
-  icon,
-  color,
-  bgColor,
-  size = 48,
+  body,
 }) => (
-  <View
-    style={[
-      styles.iconCircle,
-      { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
-    ]}
-  >
-    <Text style={{ fontSize: size * 0.45, color }}>{icon}</Text>
+  <View style={styles.empty} accessible accessibilityLabel={body ? `${title}. ${body}` : title}>
+    {Icon ? <Icon size={28} color={Theme.colors.muted} strokeWidth={1.5} /> : null}
+    <Text style={styles.emptyTitle}>{title}</Text>
+    {body ? <Text style={styles.emptyBody}>{body}</Text> : null}
   </View>
 );
 
-/* ─── Progress Dots ───────────────────────────────────────────── */
-interface ProgressDotsProps {
-  total: number;
-  current: number;
-}
-export const ProgressDots: React.FC<ProgressDotsProps> = ({ total, current }) => (
-  <View style={styles.dotsContainer}>
-    {Array.from({ length: total }).map((_, i) => (
-      <View
-        key={i}
-        style={[
-          styles.dot,
-          i === current ? styles.dotActive : styles.dotInactive,
-        ]}
-      />
-    ))}
-  </View>
-);
-
-/* ─── Divider ─────────────────────────────────────────────────── */
 export const Divider: React.FC<{ spacing?: number }> = ({ spacing = Theme.spacing.md }) => (
-  <View
-    style={{
-      height: 1,
-      backgroundColor: Theme.colors.border,
-      marginVertical: spacing,
-      opacity: 0.7,
-    }}
-  />
+  <View style={[styles.divider, { marginVertical: spacing }]} />
 );
 
-/* ─── Styles ──────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderRadius: Theme.borderRadius.lg,
+    backgroundColor: Theme.colors.raised,
+    borderRadius: Theme.radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Theme.colors.line,
     padding: Theme.spacing.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    ...Theme.shadow.card,
   },
   sectionHeader: {
+    marginTop: Theme.spacing.lg,
     marginBottom: Theme.spacing.sm,
-    marginTop: Theme.spacing.md,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    fontSize: Theme.typography.fontSizeCaption,
-    fontWeight: '800',
-    color: Theme.colors.primary,
+  overline: {
+    ...Theme.type.overline,
+    color: Theme.colors.muted,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  sectionBadge: {
-    backgroundColor: Theme.colors.primaryMuted,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Theme.borderRadius.xs,
-  },
-  sectionBadgeText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.primary,
-    fontWeight: '700',
   },
   sectionSubtitle: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
+    marginTop: Theme.spacing.xs,
+  },
+  button: {
+    minHeight: Theme.touchTarget,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonPressed: {
+    opacity: 0.7,
+  },
+  buttonDisabled: {
+    backgroundColor: 'transparent',
+    borderColor: Theme.colors.line,
+  },
+  buttonLabel: {
+    ...Theme.type.bodyStrong,
+    textAlign: 'center',
+  },
+  buttonLabelWithIcon: {
+    marginLeft: Theme.spacing.sm,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Theme.radius.pill,
+    paddingVertical: 5,
+    paddingHorizontal: Theme.spacing.sm + 2,
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  badgeLabel: {
+    ...Theme.type.caption,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceElevated,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    marginBottom: Theme.spacing.sm,
+    minHeight: Theme.touchTarget,
+    paddingVertical: Theme.spacing.sm,
   },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: Theme.colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: Theme.colors.borderSubtle,
+  settingText: {
+    flex: 1,
+    paddingRight: Theme.spacing.md,
   },
   settingLabel: {
-    fontSize: Theme.typography.fontSizeBody,
-    color: Theme.colors.text,
-    fontWeight: '700',
+    ...Theme.type.body,
+    color: Theme.colors.strong,
   },
   settingDescription: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
     marginTop: 2,
-    lineHeight: 16,
   },
-  primaryButton: {
-    flexDirection: 'row',
+  empty: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: Theme.spacing.xxl,
     paddingHorizontal: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
   },
-  primaryButtonText: {
-    fontSize: Theme.typography.fontSizeBody,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+  emptyTitle: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
+    marginTop: Theme.spacing.md,
+    textAlign: 'center',
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.full,
-    borderWidth: 1,
+  emptyBody: {
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
+    marginTop: Theme.spacing.xs,
+    textAlign: 'center',
   },
-  badgeText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  iconCircle: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-  },
-  dotActive: {
-    backgroundColor: Theme.colors.primary,
-    width: 24,
-  },
-  dotInactive: {
-    backgroundColor: Theme.colors.border,
-    width: 6,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Theme.colors.line,
   },
 });

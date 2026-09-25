@@ -1,95 +1,80 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Theme } from '../../design/theme';
-import { Card, SectionHeader, StatusBadge, PrimaryButton, Divider } from '../../design/SharedComponents';
+import { Card, Divider, SectionHeader, StatusBadge } from '../../design/SharedComponents';
+import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
+import { useAppState } from '../../state/AppStateContext';
+import { t } from '../../i18n/strings';
 
 export const AccountScreen: React.FC = () => {
-  const [deviceHash] = useState<string>('sha256:8f9a2b7c4d1e0f3a...');
-  const [installId] = useState<string>('inst_99cd28c1_accf');
-  const [subStatus] = useState<string>('EchoGuide Accessibility Pro');
+  const { state } = useAppState();
+  const lang = state.selectedLanguage;
+  const [installId, setInstallId] = useState<string>('');
 
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out / ውጣ',
-      'Signing out will clear local session tokens bound to this install ID (§10.4).',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => console.log('User signed out') },
-      ]
-    );
-  };
+  useEffect(() => {
+    VoicePipelineBridge.getServiceState().then((service) => setInstallId(service.installId));
+  }, []);
+
+  const { subscription } = state;
+  const isActive = subscription.status === 'active';
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      accessibilityLabel="User Account and Subscription Screen"
+      accessibilityLabel={t('accountTitle', lang)}
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.header} accessibilityRole="header">
-        Account & Identity
+        {t('accountTitle', lang)}
       </Text>
-      <Text style={styles.headerSubtitle}>
-        Device identity, session binding, and plan status (§10.4)
-      </Text>
+      <Text style={styles.headerSubtitle}>{t('accountSubtitle', lang)}</Text>
 
-      {/* Subscription Card */}
-      <SectionHeader title="SUBSCRIPTION PLAN" badge="PRO §10" />
-      <Card elevated style={styles.subCard}>
-        <View style={styles.subHeaderRow}>
-          <View style={styles.planIcon}>
-            <Text style={{ fontSize: 24 }}>✨</Text>
-          </View>
+      <SectionHeader title={t('sectionPlan', lang)} />
+      <Card
+        style={styles.card}
+        accessible
+        accessibilityLabel={`${isActive ? subscription.plan : t('planNone', lang)}, ${
+          isActive ? t('statusActive', lang) : t('statusInactive', lang)
+        }`}
+      >
+        <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.planTitle}>{subStatus}</Text>
-            <Text style={styles.planMeta}>Renews automatically Oct 24, 2026</Text>
+            <Text style={styles.planTitle}>
+              {isActive ? subscription.plan : t('planNone', lang)}
+            </Text>
+            <Text style={styles.meta}>
+              {subscription.renewsAt
+                ? `${t('planRenews', lang)} ${subscription.renewsAt}`
+                : t('planNoRenewal', lang)}
+            </Text>
           </View>
-          <StatusBadge status="active" label="ACTIVE" />
+          <StatusBadge
+            tone={isActive ? 'positive' : 'neutral'}
+            label={isActive ? t('statusActive', lang) : t('statusInactive', lang)}
+          />
         </View>
 
         <Divider spacing={Theme.spacing.sm} />
 
-        <View style={styles.subFeaturesRow}>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureCheck}>✓</Text>
-            <Text style={styles.featureText}>Unlimited Amharic STT</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureCheck}>✓</Text>
-            <Text style={styles.featureText}>Kotlin Native Engine</Text>
-          </View>
-        </View>
+        <Text style={styles.meta}>
+          {t('commandsUsed', lang)}: {subscription.commandsThisPeriod}
+        </Text>
       </Card>
 
-      {/* Device Identity & Session Card */}
-      <SectionHeader title="DEVICE IDENTITY" badge="HARDWARE BINDING §10.4" />
-      <Card style={styles.card}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Hashed Phone Fingerprint (§10.4):</Text>
-          <View style={styles.hashChip}>
-            <Text style={styles.hashText}>{deviceHash}</Text>
-          </View>
-        </View>
-
-        <Divider spacing={Theme.spacing.xs} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Installation Binding (install_id):</Text>
-          <View style={styles.hashChip}>
-            <Text style={styles.hashText}>{installId}</Text>
-          </View>
+      <SectionHeader title={t('sectionDevice', lang)} />
+      <Card
+        style={styles.card}
+        accessible
+        accessibilityLabel={`${t('installIdLabel', lang)}: ${
+          installId || t('installIdUnknown', lang)
+        }`}
+      >
+        <Text style={styles.label}>{t('installIdLabel', lang)}</Text>
+        <View style={styles.idChip}>
+          <Text style={styles.idText}>{installId || t('installIdUnknown', lang)}</Text>
         </View>
       </Card>
-
-      {/* Sign Out Button */}
-      <View style={{ marginTop: Theme.spacing.lg }}>
-        <PrimaryButton
-          title="Sign Out of Device Session"
-          onPress={handleSignOut}
-          variant="ghost"
-          icon="🚪"
-        />
-      </View>
     </ScrollView>
   );
 };
@@ -104,90 +89,47 @@ const styles = StyleSheet.create({
     paddingBottom: Theme.spacing.xxl,
   },
   header: {
-    fontSize: Theme.typography.fontSizeHero,
-    fontWeight: '900',
     color: Theme.colors.text,
-    letterSpacing: -0.5,
+    fontSize: Theme.type.display.fontSize,
+    fontWeight: '700',
   },
   headerSubtitle: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginBottom: Theme.spacing.xs,
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.type.label.fontSize,
+    marginTop: Theme.spacing.xs,
+    marginBottom: Theme.spacing.md,
   },
   card: {
-    backgroundColor: Theme.colors.cardBackground,
     marginBottom: Theme.spacing.md,
   },
-  subCard: {
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.primaryMuted,
-    marginBottom: Theme.spacing.md,
-  },
-  subHeaderRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  planIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: Theme.colors.primaryMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
   },
   planTitle: {
-    fontSize: Theme.typography.fontSizeSubheader,
-    fontWeight: '800',
     color: Theme.colors.text,
-  },
-  planMeta: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
-  },
-  subFeaturesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  featureCheck: {
-    color: Theme.colors.primary,
-    fontWeight: '900',
-    marginRight: 6,
-  },
-  featureText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textSecondary,
+    fontSize: Theme.type.heading.fontSize,
     fontWeight: '600',
   },
-  infoRow: {
-    paddingVertical: Theme.spacing.xs,
+  meta: {
+    color: Theme.colors.textMuted,
+    fontSize: Theme.type.label.fontSize,
+    marginTop: Theme.spacing.xs,
   },
   label: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
-    marginBottom: 4,
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.type.label.fontSize,
+    marginBottom: Theme.spacing.xs,
   },
-  hashChip: {
-    backgroundColor: Theme.colors.surfaceElevated,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: Theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
+  idChip: {
+    backgroundColor: Theme.colors.sunken,
+    borderRadius: Theme.radius.sm,
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.sm,
   },
-  hashText: {
-    fontSize: Theme.typography.fontSizeSmall,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: Theme.colors.primary,
-    fontWeight: '600',
+  idText: {
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.type.caption.fontSize,
+    fontFamily: 'monospace',
   },
 });

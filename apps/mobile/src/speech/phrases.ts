@@ -1,5 +1,4 @@
-import { TurboModuleRegistry } from 'react-native';
-import type { Spec } from '../native/VoicePipelineBridgeSpec';
+import { VoicePipelineBridge } from '../native/VoicePipelineBridge';
 import catalog from './phrases.json';
 
 export type PhraseLocale = 'am-ET' | 'en-US';
@@ -21,9 +20,7 @@ export function getPhraseCatalog(language: PhraseLocale = currentLanguage): Reco
 
 export async function setPhraseLanguage(language: PhraseLocale): Promise<boolean> {
   currentLanguage = language;
-  const bridge = TurboModuleRegistry.get<Spec>('VoicePipelineBridge');
-  if (!bridge) return true;
-  return bridge.setLanguage(language);
+  return VoicePipelineBridge.setLanguage(language);
 }
 
 export function getPhraseLanguage(): PhraseLocale {

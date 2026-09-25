@@ -1,400 +1,280 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Mic, MicOff, ShieldAlert, Volume2 } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
-import { Card, IconCircle, StatusBadge, Divider, PrimaryButton } from '../../design/SharedComponents';
+import { Card, PrimaryButton, SectionHeader } from '../../design/SharedComponents';
 import { useAppState } from '../../state/AppStateContext';
 import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
+import { usePipelineState } from '../../native/usePipelineState';
+import { t } from '../../i18n/strings';
 
 export const HomeScreen: React.FC = () => {
-  const { state, dispatch } = useAppState();
-  const [isListening, setIsListening] = useState<boolean>(true);
+  const { state } = useAppState();
+  const pipeline = usePipelineState();
+  const language = state.selectedLanguage;
+  const isListening = pipeline.isListening;
 
-  // Today's stats
   const today = new Date().toDateString();
   const todayCommands = state.commandHistory.filter(
-    (c) => new Date(c.timestamp).toDateString() === today
+    (c) => new Date(c.timestamp).toDateString() === today,
   );
   const todaySuccess = todayCommands.filter((c) => c.outcome === 'done').length;
-  const todayRate = todayCommands.length > 0 ? Math.round((todaySuccess / todayCommands.length) * 100) : 100;
+
+  const statusLabel = !pipeline.available
+    ? t('engineUnavailable', language)
+    : isListening
+      ? t('engineListening', language)
+      : t('enginePaused', language);
 
   const toggleListening = () => {
-    if (isListening) {
-      VoicePipelineBridge.stopListening();
-      setIsListening(false);
-    } else {
-      VoicePipelineBridge.startListening();
-      setIsListening(true);
-    }
+    Haptics.impactAsync(
+      isListening ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium,
+    ).catch(() => undefined);
+    if (isListening) VoicePipelineBridge.stopListening();
+    else if (pipeline.wakeWordAvailable) VoicePipelineBridge.startListening();
+    else VoicePipelineBridge.triggerListening();
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* ─── Header Section ────────────────────────────────────── */}
-      <View style={styles.headerSection}>
-        <View style={styles.greetingRow}>
-          <Text style={styles.greeting}>
-            {state.selectedLanguage === 'am-ET' ? 'ሰላም 👋' : 'Hello 👋'}
-          </Text>
-          <View style={styles.liveTag}>
-            <View style={[styles.liveDot, { backgroundColor: isListening ? Theme.colors.success : Theme.colors.danger }]} />
-            <Text style={styles.liveText}>{isListening ? 'ENGINE LIVE' : 'PAUSED'}</Text>
-          </View>
-        </View>
+  const needsSetup = pipeline.available && !pipeline.accessibilityEnabled;
 
-        <Text style={styles.headerTitle}>EchoGuide</Text>
-        <Text style={styles.headerSub}>
-          {state.selectedLanguage === 'am-ET'
-            ? 'ተደራሽነት ድምጽ ረዳት • 16 kHz PCM §5.1'
-            : 'Bilingual Voice Control • 16 kHz PCM §5.1'}
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.greeting}>
+        {language === 'am-ET' ? 'ሰላም' : 'Hello'}
+      </Text>
+
+      <Pressable
+        onPress={toggleListening}
+        disabled={!pipeline.available}
+        accessibilityRole="button"
+        accessibilityLabel={statusLabel}
+        accessibilityHint={
+          isListening ? t('stopListening', language) : t('startListening', language)
+        }
+        accessibilityState={{ selected: isListening, disabled: !pipeline.available }}
+        style={({ pressed }) => [
+          styles.mic,
+          isListening ? styles.micOn : styles.micOff,
+          pressed && styles.micPressed,
+          !pipeline.available && styles.micUnavailable,
+        ]}
+      >
+        {isListening ? (
+          <Mic size={44} color={Theme.colors.accentInk} strokeWidth={1.75} />
+        ) : (
+          <MicOff size={44} color={Theme.colors.base} strokeWidth={1.75} />
+        )}
+      </Pressable>
+
+      <View accessibilityLiveRegion="polite" style={styles.statusBlock}>
+        <Text style={styles.statusTitle}>
+          {!isListening
+            ? t('paused', language)
+            : pipeline.wakeWordAvailable
+              ? `“${state.wakeWord}”`
+              : t('listening', language)}
+        </Text>
+        <Text style={styles.statusBody}>
+          {!pipeline.available
+            ? t('engineUnavailable', language)
+            : needsSetup
+              ? t('enableInSettings', language)
+              : !isListening
+                ? t('tapToStart', language)
+                : pipeline.wakeWordAvailable
+                  ? t('sayWakeThenCommand', language)
+                  : t('tapEachTime', language)}
         </Text>
       </View>
 
-      {/* ─── Listening Pulsing Hero Card ──────────────────────── */}
-      <Card elevated style={styles.heroCard}>
-        <View style={styles.heroInner}>
-          <View style={[styles.pulseCircleOuter, isListening && styles.pulseGlow]}>
-            <View style={[styles.pulseCircleMid, isListening && { backgroundColor: 'rgba(0, 229, 255, 0.2)' }]}>
-              <TouchableOpacity
-                onPress={toggleListening}
-                activeOpacity={0.8}
-                style={[styles.pulseCircleInner, { backgroundColor: isListening ? Theme.colors.primary : Theme.colors.surfaceElevated }]}
-              >
-                <Text style={{ fontSize: 32 }}>{isListening ? '🎙️' : '🔇'}</Text>
-              </TouchableOpacity>
+      {needsSetup ? (
+        <Card style={styles.setupCard}>
+          <View style={styles.setupRow}>
+            <ShieldAlert size={20} color={Theme.colors.accent} strokeWidth={1.75} />
+            <Text style={styles.setupText}>{t('enableInSettings', language)}</Text>
+          </View>
+          <PrimaryButton
+            title={t('openAccessibility', language)}
+            onPress={() => VoicePipelineBridge.openAccessibilitySettings()}
+            accessibilityHint={t('openAccessibilityHint', language)}
+            style={styles.setupButton}
+          />
+        </Card>
+      ) : null}
+
+      {pipeline.available && !pipeline.hasVoice ? (
+        <Card style={styles.setupCard}>
+          <View style={styles.setupRow}>
+            <Volume2 size={20} color={Theme.colors.accent} strokeWidth={1.75} />
+            <View style={styles.setupCopy}>
+              <Text style={styles.setupTitle}>{t('voiceMissingTitle', language)}</Text>
+              <Text style={styles.setupBody}>{t('voiceMissingBody', language)}</Text>
             </View>
           </View>
-
-          <Text style={styles.heroStatusTitle}>
-            {isListening ? `Say "${state.wakeWord}"` : 'Voice Engine Paused'}
-          </Text>
-          <Text style={styles.heroStatusSub}>
-            {isListening
-              ? state.selectedLanguage === 'am-ET'
-                ? 'የድምፅ ረዳቱ ትእዛዝዎን ለመስማት ዝግጁ ነው'
-                : 'Wake-word detection running natively in Kotlin'
-              : 'Tap microphone icon to resume voice detection'}
-          </Text>
-
-          <View style={styles.heroActionContainer}>
-            <PrimaryButton
-              title={isListening ? 'Pause Listening' : 'Start Voice Engine'}
-              onPress={toggleListening}
-              variant={isListening ? 'ghost' : 'glow'}
-              icon={isListening ? '⏸️' : '▶️'}
-              style={{ minWidth: 200 }}
-            />
-          </View>
-        </View>
-      </Card>
-
-      {/* ─── Quick Stats Dashboard ────────────────────────────── */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>PIPELINE PERFORMANCE</Text>
-        <Text style={styles.sectionSub}>Real-time telemetry</Text>
-      </View>
-
-      <View style={styles.statsRow}>
-        <Card style={styles.miniStat}>
-          <Text style={styles.miniStatIcon}>⚡</Text>
-          <Text style={styles.miniStatValue}>{todayCommands.length}</Text>
-          <Text style={styles.miniStatLabel}>Commands</Text>
+          <PrimaryButton
+            title={t('openVoiceSettings', language)}
+            onPress={() => VoicePipelineBridge.openVoiceSettings()}
+            variant="secondary"
+            accessibilityHint={t('openVoiceSettingsHint', language)}
+            style={styles.setupButton}
+          />
         </Card>
-        <Card style={[styles.miniStat, { borderColor: Theme.colors.successMuted }]}>
-          <Text style={styles.miniStatIcon}>🎯</Text>
-          <Text style={[styles.miniStatValue, { color: Theme.colors.success }]}>{todayRate}%</Text>
-          <Text style={styles.miniStatLabel}>Success</Text>
-        </Card>
-        <Card style={[styles.miniStat, { borderColor: Theme.colors.accentMuted }]}>
-          <Text style={styles.miniStatIcon}>⏱️</Text>
-          <Text style={[styles.miniStatValue, { color: Theme.colors.accent }]}>~450ms</Text>
-          <Text style={styles.miniStatLabel}>Avg Latency</Text>
-        </Card>
-      </View>
+      ) : null}
 
-      {/* ─── Config Summary Card ──────────────────────────────── */}
-      <Card style={styles.configCard}>
-        <View style={styles.configRow}>
-          <View style={styles.configItem}>
-            <Text style={styles.configLabel}>Language</Text>
-            <Text style={styles.configValue}>
-              {state.selectedLanguage === 'am-ET' ? '🇪🇹 አማርኛ' : '🇺🇸 English'}
-            </Text>
-          </View>
+      {todayCommands.length > 0 ? (
+        <>
+          <SectionHeader title={t('sectionPerformance', language)} />
+          <Card
+            accessible
+            accessibilityLabel={`${todayCommands.length} ${t('commands', language)}, ${todaySuccess} ${t('success', language)}`}
+          >
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{todayCommands.length}</Text>
+                <Text style={styles.statLabel}>{t('commands', language)}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{todaySuccess}</Text>
+                <Text style={styles.statLabel}>{t('success', language)}</Text>
+              </View>
+            </View>
+          </Card>
+        </>
+      ) : null}
 
-          <View style={[styles.configItem, styles.configBorder]}>
-            <Text style={styles.configLabel}>Wake Word</Text>
-            <Text style={[styles.configValue, { color: Theme.colors.primary }]}>"{state.wakeWord}"</Text>
-          </View>
-
-          <View style={styles.configItem}>
-            <Text style={styles.configLabel}>Consent</Text>
-            <StatusBadge
-              status={state.consentGranted ? 'active' : 'inactive'}
-              label={state.consentGranted ? 'Granted' : 'Needed'}
-            />
-          </View>
-        </View>
-      </Card>
-
-      {/* ─── Quick Voice Commands ─────────────────────────────── */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>RECOMMENDED COMMANDS</Text>
-        <Text style={styles.sectionSub}>Bilingual shortcuts</Text>
-      </View>
-
-      <Card style={{ marginBottom: Theme.spacing.xxl }}>
-        <View style={styles.tipRow}>
-          <View style={styles.tipBadge}>
-            <Text style={styles.tipBadgeText}>AM</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tipTitle}>"Echo, መልእክት ላክ"</Text>
-            <Text style={styles.tipDesc}>Opens messaging & drafts dictation</Text>
-          </View>
-        </View>
-
-        <Divider spacing={Theme.spacing.xs} />
-
-        <View style={styles.tipRow}>
-          <View style={[styles.tipBadge, { backgroundColor: Theme.colors.secondaryMuted, borderColor: Theme.colors.secondary }]}>
-            <Text style={[styles.tipBadgeText, { color: Theme.colors.secondary }]}>EN</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tipTitle}>"Echo, open phone settings"</Text>
-            <Text style={styles.tipDesc}>Navigates directly to System Settings</Text>
-          </View>
-        </View>
-
-        <Divider spacing={Theme.spacing.xs} />
-
-        <View style={styles.tipRow}>
-          <View style={styles.tipBadge}>
-            <Text style={styles.tipBadgeText}>AM</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tipTitle}>"Echo, ጥሪ አድርግ"</Text>
-            <Text style={styles.tipDesc}>Initiates voice-guided contact phone call</Text>
-          </View>
-        </View>
+      <SectionHeader title={t('sectionTryThese', language)} />
+      <Card>
+        <Text style={styles.example}>“{state.wakeWord}, መልእክት ላክ”</Text>
+        <Text style={styles.exampleHint}>{t('tipSendMessage', language)}</Text>
+        <View style={styles.exampleGap} />
+        <Text style={styles.example}>“{state.wakeWord}, open settings”</Text>
+        <Text style={styles.exampleHint}>{t('tipOpenSettings', language)}</Text>
       </Card>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.ground,
   },
   content: {
-    padding: Theme.spacing.md,
-    paddingTop: Theme.spacing.lg,
-  },
-  headerSection: {
-    marginBottom: Theme.spacing.md,
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    paddingHorizontal: Theme.spacing.md,
+    paddingBottom: Theme.spacing.xxl,
+    paddingTop: Theme.spacing.sm,
   },
   greeting: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.textMuted,
-    fontWeight: '600',
+    ...Theme.type.display,
+    color: Theme.colors.strong,
+    marginBottom: Theme.spacing.xl,
   },
-  liveTag: {
-    flexDirection: 'row',
+  mic: {
+    alignSelf: 'center',
+    width: 168,
+    height: 168,
+    borderRadius: 84,
     alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceElevated,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.full,
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Theme.colors.border,
   },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+  micOn: {
+    backgroundColor: Theme.colors.accent,
+    borderColor: Theme.colors.accent,
   },
-  liveText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    fontWeight: '800',
-    color: Theme.colors.textSecondary,
-    letterSpacing: 0.8,
+  micOff: {
+    backgroundColor: Theme.colors.raised,
+    borderColor: Theme.colors.lineStrong,
   },
-  headerTitle: {
-    fontSize: Theme.typography.fontSizeDisplay,
-    fontWeight: '900',
-    color: Theme.colors.text,
-    letterSpacing: -0.8,
+  micPressed: {
+    opacity: 0.75,
   },
-  headerSub: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
-    marginTop: 2,
+  micUnavailable: {
+    opacity: 0.4,
   },
-  heroCard: {
+  statusBlock: {
+    alignItems: 'center',
+    marginTop: Theme.spacing.lg,
     marginBottom: Theme.spacing.lg,
-    backgroundColor: Theme.colors.cardBackground,
-    borderColor: Theme.colors.border,
-    paddingVertical: Theme.spacing.lg,
   },
-  heroInner: {
-    alignItems: 'center',
-  },
-  pulseCircleOuter: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Theme.spacing.md,
-  },
-  pulseGlow: {
-    borderWidth: 1,
-    borderColor: Theme.colors.primaryMuted,
-    ...Theme.shadow.glow,
-  },
-  pulseCircleMid: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pulseCircleInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Theme.shadow.card,
-  },
-  heroStatusTitle: {
-    fontSize: Theme.typography.fontSizeHeader,
-    fontWeight: '800',
-    color: Theme.colors.text,
+  statusTitle: {
+    ...Theme.type.title,
+    color: Theme.colors.strong,
     textAlign: 'center',
-    marginBottom: 4,
   },
-  heroStatusSub: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
+  statusBody: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
     textAlign: 'center',
-    paddingHorizontal: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    lineHeight: 18,
-  },
-  heroActionContainer: {
-    alignItems: 'center',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Theme.spacing.xs,
     marginTop: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.md,
   },
-  sectionTitle: {
-    fontSize: Theme.typography.fontSizeCaption,
-    fontWeight: '800',
-    color: Theme.colors.primary,
-    letterSpacing: 1.5,
+  setupCard: {
+    borderColor: 'rgba(224,182,74,0.35)',
   },
-  sectionSub: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
+  setupRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  setupText: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
+    flex: 1,
+    marginLeft: Theme.spacing.sm,
+  },
+  setupCopy: {
+    flex: 1,
+    marginLeft: Theme.spacing.sm,
+  },
+  setupBody: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
+  },
+  setupTitle: {
+    ...Theme.type.bodyStrong,
+    color: Theme.colors.strong,
+    marginBottom: 2,
+  },
+  setupButton: {
+    marginTop: Theme.spacing.md,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.md,
-  },
-  miniStat: {
-    flex: 1,
     alignItems: 'center',
-    padding: Theme.spacing.sm,
-    backgroundColor: Theme.colors.cardBackground,
   },
-  miniStatIcon: {
-    fontSize: 16,
-    marginBottom: 2,
+  stat: {
+    flex: 1,
   },
-  miniStatValue: {
-    fontSize: Theme.typography.fontSizeHeader,
-    fontWeight: '900',
-    color: Theme.colors.text,
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    backgroundColor: Theme.colors.line,
   },
-  miniStatLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '700',
+  statValue: {
+    ...Theme.type.display,
+    color: Theme.colors.strong,
+  },
+  statLabel: {
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
     marginTop: 2,
   },
-  configCard: {
-    marginBottom: Theme.spacing.lg,
-    backgroundColor: Theme.colors.surfaceElevated,
-    padding: Theme.spacing.sm,
+  example: {
+    ...Theme.type.bodyStrong,
+    color: Theme.colors.strong,
   },
-  configRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  configItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Theme.spacing.xs,
-  },
-  configBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  configLabel: {
-    fontSize: Theme.typography.fontSizeMicro,
-    color: Theme.colors.textMuted,
-    fontWeight: '700',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  configValue: {
-    fontSize: Theme.typography.fontSizeSmall,
-    color: Theme.colors.text,
-    fontWeight: '700',
-  },
-  tipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Theme.spacing.xs,
-  },
-  tipBadge: {
-    backgroundColor: Theme.colors.primaryMuted,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.xs,
-    marginRight: Theme.spacing.md,
-  },
-  tipBadgeText: {
-    fontSize: Theme.typography.fontSizeMicro,
-    fontWeight: '900',
-    color: Theme.colors.primary,
-  },
-  tipTitle: {
-    fontSize: Theme.typography.fontSizeSmall,
-    fontWeight: '700',
-    color: Theme.colors.text,
-  },
-  tipDesc: {
-    fontSize: Theme.typography.fontSizeCaption,
-    color: Theme.colors.textMuted,
+  exampleHint: {
+    ...Theme.type.caption,
+    color: Theme.colors.muted,
     marginTop: 2,
+  },
+  exampleGap: {
+    height: Theme.spacing.md,
   },
 });
