@@ -84,6 +84,20 @@ export const consentGrants = pgTable(
   (t) => [index('consent_grants_current_idx').on(t.userId, t.scope, t.createdAt.desc())],
 );
 
+export const appGrants = pgTable(
+  'app_grants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    packageName: text('package_name').notNull(),
+    granted: boolean('granted').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('app_grants_current_idx').on(t.userId, t.packageName, t.createdAt.desc())],
+);
+
 export const commandEvents = pgTable(
   'command_events',
   {

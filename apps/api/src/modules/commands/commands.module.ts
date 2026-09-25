@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { zActionPlan, zCommandRequest } from '@echoguide/openapi';
 import { ConfidenceGateSchema } from './confidence-gate';
+import { isPackageGranted } from './app-grants.service';
 import { AddisAIAdapter } from '../../shared/adapters/addis_ai_adapter';
 import { checkCanRunCommand } from '../billing/billing.service';
 import { emit } from '../telemetry/telemetry.service';
@@ -87,11 +88,25 @@ commandsModule.post('/v1/commands', async (req: Request, res: Response) => {
       return res.status(200).json({
         command_id: req.requestId,
         status: 'REJECTED',
-        reprompt_reason: 'Plan failed allowlist validation',
+        reprompt_reason: 'Plan failed schema validation',
         speak_code: 'ERR_REJECTED',
       });
     }
     const plan = planValidation.data;
+
+    const allowlistMark = Date.now();
+    const appGranted = await isPackageGranted(req.userId, plan.package_name);
+    stageTimings.allowlist_ms = Date.now() - allowlistMark;
+    if (!appGranted) {
+      emitSafe(req, started, 'blocked', stageTimings, sttResult.confidence);
+      return res.status(200).json({
+        command_id: req.requestId,
+        status: 'REJECTED',
+        reprompt_reason: 'App not authorized for voice control',
+        speak_code: 'ERR_REJECTED',
+      });
+    }
+
     const status = plan.steps.some((step) => step.is_destructive) ? 'CONFIRMATION_REQUIRED' : 'ACCEPTED';
 
     emitSafe(req, started, 'done', stageTimings, sttResult.confidence);

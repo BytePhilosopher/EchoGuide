@@ -6,6 +6,7 @@ import { requestContext } from './request-context';
 import { authModule } from '../modules/auth/auth.module';
 import { usersModule } from '../modules/users/users.module';
 import { commandsModule } from '../modules/commands/commands.module';
+import { appGrantsModule } from '../modules/commands/app-grants.module';
 import { consentModule } from '../modules/consent/consent.module';
 import { telemetryModule } from '../modules/telemetry/telemetry.module';
 import { billingModule } from '../modules/billing/billing.module';
@@ -26,6 +27,7 @@ export function createApp() {
   app.use(authModule);
   app.use(usersModule);
   app.use(commandsModule);
+  app.use(appGrantsModule);
   app.use(consentModule);
   app.use(telemetryModule);
   app.use(billingModule);

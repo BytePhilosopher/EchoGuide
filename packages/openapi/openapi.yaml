@@ -24,6 +24,8 @@ tags:
     description: The voice command pipeline.
   - name: consent
     description: Append-only retention grants and data deletion.
+  - name: app-grants
+    description: Append-only per-app capability grants. A plan for an app without a grant never reaches the phone.
   - name: telemetry
     description: Outcome and latency events. Never transcripts or audio.
   - name: billing
@@ -179,6 +181,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeletionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/app-grants:
+    post:
+      tags: [app-grants]
+      operationId: recordAppGrant
+      summary: Grant or revoke voice control of one app
+      description: Append-only. Revoking writes a new row with granted set to false.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppGrantRequest'
+      responses:
+        '200':
+          description: The grant was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppGrantResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [app-grants]
+      operationId: listAppGrants
+      summary: Current grant state for every app the user has decided on
+      description: Latest row per (user_id, package_name). An app with no row is not granted.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      responses:
+        '200':
+          description: Current grant state per app.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppGrantListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -575,6 +619,56 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    PackageName:
+      type: string
+      description: An Android application id.
+      minLength: 3
+      maxLength: 255
+      pattern: '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$'
+      example: com.whatsapp
+
+    AppGrantRequest:
+      type: object
+      required: [package_name, granted]
+      properties:
+        package_name:
+          $ref: '#/components/schemas/PackageName'
+        granted:
+          type: boolean
+
+    AppGrantResponse:
+      type: object
+      required: [status, package_name, granted]
+      properties:
+        status:
+          type: string
+          enum: [recorded]
+        package_name:
+          $ref: '#/components/schemas/PackageName'
+        granted:
+          type: boolean
+
+    AppGrantState:
+      type: object
+      required: [package_name, granted, created_at]
+      properties:
+        package_name:
+          $ref: '#/components/schemas/PackageName'
+        granted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    AppGrantListResponse:
+      type: object
+      required: [grants]
+      properties:
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppGrantState'
 
     DeletionResponse:
       type: object

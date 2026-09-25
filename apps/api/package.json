@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/app/server.js",
     "smoke": "tsx src/app/smoke.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:rollback": "tsx src/shared/database/rollback.ts"

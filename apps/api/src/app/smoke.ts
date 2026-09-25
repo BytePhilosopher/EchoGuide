@@ -80,8 +80,12 @@ async function main(): Promise<void> {
     });
     const commandJson = parse(command.body);
     checks.push({
-      name: 'command fail-open',
-      ok: command.status === 200 && commandJson.status === 'ACCEPTED' && commandJson.speak_code === 'ACK',
+      name: 'command fail-closed on ungranted app',
+      ok:
+        command.status === 200 &&
+        commandJson.status === 'REJECTED' &&
+        commandJson.speak_code === 'ERR_REJECTED' &&
+        commandJson.action_plan === undefined,
       detail: `${command.status} ${command.body}`,
     });
 
@@ -136,6 +140,17 @@ async function main(): Promise<void> {
       name: 'consent unauthorized without user',
       ok: consent.status === 401,
       detail: `HTTP ${consent.status}`,
+    });
+
+    const appGrant = await request(base, '/v1/app-grants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ package_name: 'com.whatsapp', granted: true }),
+    });
+    checks.push({
+      name: 'app grant unauthorized without user',
+      ok: appGrant.status === 401,
+      detail: `HTTP ${appGrant.status}`,
     });
   } finally {
     await new Promise<void>((resolve, reject) => {
