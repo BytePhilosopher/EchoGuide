@@ -13,6 +13,7 @@ class SpeechSynthesizer(private val context: Context) : TextToSpeech.OnInitListe
   private val tts = TextToSpeech(context, this)
   private val utteranceCounter = AtomicLong(0)
   private val pending = ArrayDeque<Pair<String, String>>()
+  private val earcons = Earcons()
 
   private var player: MediaPlayer? = null
   private var isReady = false
@@ -55,7 +56,8 @@ class SpeechSynthesizer(private val context: Context) : TextToSpeech.OnInitListe
 
   fun playPhrase(key: String) {
     if (playAsset(PhraseCatalog.assetPath(key))) return
-    speak(PhraseCatalog.text(key), language)
+    if (isReady && trySpeak(PhraseCatalog.text(key), language)) return
+    earcons.play(key)
   }
 
   fun speak(text: String, languageCode: String) {
@@ -65,12 +67,7 @@ class SpeechSynthesizer(private val context: Context) : TextToSpeech.OnInitListe
       return
     }
 
-    val spoken = trySpeak(text, languageCode)
-    if (spoken) return
-
-    if (languageCode != EN_US && englishStatus == VoiceStatus.READY) {
-      trySpeak(PhraseCatalog.textIn(text, EN_US), EN_US)
-    }
+    trySpeak(text, languageCode)
   }
 
   fun stop() {
@@ -80,6 +77,7 @@ class SpeechSynthesizer(private val context: Context) : TextToSpeech.OnInitListe
 
   fun shutdown() {
     stop()
+    earcons.release()
     tts.shutdown()
   }
 

@@ -46,6 +46,10 @@ class VoicePipelineService private constructor(private val context: Context) {
 
   private var pendingPlan: ActionPlan? = null
 
+  init {
+    AccessibilityExecutorService.onShortcut = { triggerOnce() }
+  }
+
   var outcomeSink: ((Map<String, Any?>) -> Unit)? = null
   var stateSink: ((Map<String, Any?>) -> Unit)? = null
 

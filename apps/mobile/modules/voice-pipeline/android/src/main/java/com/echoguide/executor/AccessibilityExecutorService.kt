@@ -1,5 +1,6 @@
 package com.echoguide.executor
 
+import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
@@ -17,9 +18,18 @@ import java.util.concurrent.TimeUnit
 class AccessibilityExecutorService : AccessibilityService() {
   private val reducer = ViewTreeReducer()
 
+  private val shortcutCallback = object : AccessibilityButtonController.AccessibilityButtonCallback() {
+    override fun onClicked(controller: AccessibilityButtonController) {
+      onShortcut?.invoke()
+    }
+  }
+
   override fun onServiceConnected() {
     super.onServiceConnected()
     instance = this
+    runCatching {
+      accessibilityButtonController.registerAccessibilityButtonCallback(shortcutCallback)
+    }
   }
 
   override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
@@ -27,6 +37,9 @@ class AccessibilityExecutorService : AccessibilityService() {
   override fun onInterrupt() = Unit
 
   override fun onDestroy() {
+    runCatching {
+      accessibilityButtonController.unregisterAccessibilityButtonCallback(shortcutCallback)
+    }
     if (instance === this) instance = null
     super.onDestroy()
   }
@@ -94,6 +107,9 @@ class AccessibilityExecutorService : AccessibilityService() {
     @Volatile
     var instance: AccessibilityExecutorService? = null
       private set
+
+    @Volatile
+    var onShortcut: (() -> Unit)? = null
 
     const val TAP_DURATION_MS = 60L
     const val GESTURE_TIMEOUT_MS = 2_000L

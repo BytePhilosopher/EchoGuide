@@ -2,7 +2,7 @@
   android:description="@string/accessibility_service_description"
   android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewFocused"
   android:accessibilityFeedbackType="feedbackSpoken"
-  android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
+  android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagRequestAccessibilityButton"
   android:canRetrieveWindowContent="true"
   android:canPerformGestures="true"
   android:notificationTimeout="100" />
