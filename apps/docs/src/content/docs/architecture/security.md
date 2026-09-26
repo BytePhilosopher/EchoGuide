@@ -86,6 +86,16 @@ admin.manage
 accounts". Write the check once, in middleware, and make every admin route declare what it
 needs.
 
+:::note[In the repository]
+Implemented as described, and recorded as ADR 005 (`docs/adr/005-device-bound-opaque-sessions.md`).
+`authenticateRequest` resolves `Authorization: Bearer` plus `X-Install-ID` to `req.principal`; handlers
+never read a user id from the request. Only an HMAC of each token is stored. Admin routes use
+`authenticateAdmin` and `requirePermission(...)`, and every call, including denials, is written to
+`audit_logs`. Admin credentials are issued by an operator CLI (see
+`docs/runbooks/production-operations.md`); there is no admin login screen yet. The phone hash is not
+used for identity until it can be verified.
+:::
+
 ## Platform review
 
 Store policy restricts accessibility-service APIs to apps whose core function genuinely needs

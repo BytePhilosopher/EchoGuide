@@ -70,10 +70,16 @@ and rejects **before** spending a planning call.
 The surviving `avg_logprob` is mapped onto 0–1 and gated on. These thresholds are a starting
 point to tune against real recordings, not a result.
 
-:::caution[Schema mismatch]
-`ConfidenceGateSchema` in `apps/api/src/modules/commands/confidence-gate.ts` declares `avg_logprob` with `.max(-1.0)`, which
-accepts only values at or below −1.0. The design says below −1.0 means the model was guessing,
-so the schema's direction is inverted. Treat the table above as the intent.
+:::note[In the repository]
+`AddisAIResponseAdapter` (`apps/api/src/shared/adapters/addis_ai_response_adapter.ts`) normalises
+the vendor's reply; `evaluateConfidence` in `apps/api/src/modules/commands/confidence-gate.ts`
+applies the table above in the documented direction, plus a 0.6 floor for a provider-supplied
+0..1 score. **A missing score is never treated as a number.** By default
+(`ADDIS_UNAVAILABLE_CONFIDENCE_POLICY=confirm`) the plan is still made but must be confirmed aloud
+before anything runs; `reprompt` asks again instead. Where the vendor puts these signals is not
+documented, so the accepted shapes are listed as assumptions in the adapter and in the golden
+fixtures, and mismatches are logged by field name. Not-speech currently reprompts rather than
+resetting silently, because the API has no silent status.
 :::
 
 ## Speech output

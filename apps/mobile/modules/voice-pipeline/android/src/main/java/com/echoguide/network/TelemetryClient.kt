@@ -19,7 +19,10 @@ class TelemetryClient(
     stageTimings: Map<String, Long>,
     installId: String,
     requestId: String,
+    sessionToken: String? = null,
   ) {
+    // The server attributes events to the session's user and refuses them without one.
+    if (sessionToken == null) return
     val timings = JSONObject().apply {
       stageTimings.forEach { (stage, ms) -> put(stage, ms) }
     }
@@ -33,6 +36,7 @@ class TelemetryClient(
     val request = Request.Builder()
       .url("$baseUrl/v1/telemetry/events")
       .header("X-Install-ID", installId)
+      .header("Authorization", "Bearer $sessionToken")
       .header("X-Request-ID", requestId)
       .post(body.toRequestBody(JSON))
       .build()

@@ -61,18 +61,26 @@ destructive. A plan that leaves that out is rejected rather than assumed safe.
 
 ## Sessions
 
-Devices register once and receive an opaque session token, bound to the install id. Admin routes
-use a separate credential, and each one declares the permission it needs — `users.read` or
-`users.suspend` — in the contract. See [Security](/architecture/security/#authentication).
+Devices register once and receive an opaque session token, bound to the install id. Every user
+request sends `Authorization: Bearer <session_token>` **and** `X-Install-ID`. Tokens rotate through
+`POST /v1/auth/refresh` and are revoked by `POST /v1/auth/logout`. Re-registering an install id that
+is already registered requires its current session; without it the answer is 409 and the client
+starts a new install. Admin routes use a separate credential, and each one declares the permission
+it needs — `users.read` or `users.suspend` — in the contract. See
+[Security](/architecture/security/#authentication).
 
-## Where the code differs today
+## Errors and limits
 
-The handlers in `apps/api` are early implementations and do not yet meet the whole contract.
+| Status | When |
+| --- | --- |
+| 401 | Missing, malformed, unknown, expired or revoked credential |
+| 403 | Account suspended, or admin lacks the permission |
+| 409 | Install id already registered; idempotency key still in flight; account being deleted |
+| 413 | Body over the route's limit (16 KB for JSON routes, 1 MB for commands) |
+| 422 | Idempotency key reused with a different body |
+| 429 | Rate limit, with `Retry-After` |
+| 502 / 503 / 504 | Voice provider unreadable / unavailable or breaker open / timed out |
 
-:::caution[Known drift]
-- **`POST /v1/commands`** transcribes every request as `am-ET`, ignoring `language`.
-- **`POST /v1/commands`** omits `command_id` on `REPROMPT` and `REJECTED`, and falls back to a non-UUID `cmd-<timestamp>` id.
-- **The confidence gate** checks `avg_logprob` in the wrong direction, so every command currently resolves to `REPROMPT`. Behind it, **the planner adapter** returns a placeholder plan that would also fail `ActionPlan`.
-:::
-
-A request example in Kotlin and TypeScript is on [Voice commands](/guides/voice-commands/#sending-a-command).
+Every response carries `X-Request-ID`. The contract test in
+`apps/api/src/test/integration/contract.test.ts` fails if a route exists in the code but not in
+`openapi.yaml`, or the reverse.

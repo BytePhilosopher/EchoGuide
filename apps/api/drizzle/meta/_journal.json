@@ -29,6 +29,13 @@
       "when": 1790343930584,
       "tag": "0003_app_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790399714741,
+      "tag": "0004_production_hardening",
+      "breakpoints": true
     }
   ]
 }

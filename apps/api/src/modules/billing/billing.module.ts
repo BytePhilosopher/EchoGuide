@@ -1,12 +1,16 @@
-import { Router, Request, Response } from 'express';
-import { getEntitlement } from './billing.service';
+import { Router, type RequestHandler } from 'express';
+import { asyncHandler } from '../../shared/http';
+import { principalOf } from '../auth/auth.middleware';
+import type { BillingService } from './billing.service';
 
-export const billingModule = Router();
-
-billingModule.get('/v1/billing/entitlement', async (req: Request, res: Response) => {
-  if (!req.userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  const entitlement = await getEntitlement(req.userId);
-  return res.json(entitlement);
-});
+export function billingModule(billing: BillingService, authenticate: RequestHandler): Router {
+  const router = Router();
+  router.get(
+    '/v1/billing/entitlement',
+    authenticate,
+    asyncHandler(async (req, res) => {
+      res.json(await billing.getEntitlement(principalOf(req).userId));
+    }),
+  );
+  return router;
+}

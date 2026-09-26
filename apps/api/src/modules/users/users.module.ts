@@ -1,14 +1,17 @@
-import { Router, Request, Response } from 'express';
+import { Router, type RequestHandler } from 'express';
+import { asyncHandler } from '../../shared/http';
+import { principalOf } from '../auth/auth.middleware';
+import type { UsersService } from './users.service';
 
-export const usersModule = Router();
-
-usersModule.get('/v1/users/me', (req: Request, res: Response) => {
-  return res.json({
-    user_id: 'usr-12345',
-    locale: 'am-ET',
-    preferences: {
-      speech_rate: 100,
-      wake_word: 'Echo',
-    },
-  });
-});
+/** Mounted behind authenticateRequest. The user is always the principal; no id is ever read from the request. */
+export function usersModule(users: UsersService, authenticate: RequestHandler): Router {
+  const router = Router();
+  router.get(
+    '/v1/users/me',
+    authenticate,
+    asyncHandler(async (req, res) => {
+      res.json(await users.getCurrentUser(principalOf(req).userId));
+    }),
+  );
+  return router;
+}

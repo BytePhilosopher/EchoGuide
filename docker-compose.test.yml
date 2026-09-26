@@ -1,0 +1,38 @@
+# Disposable Postgres and Redis for the API integration tests.
+# Data lives in tmpfs and disappears with the containers. Ports differ from
+# docker-compose.yml so the test stack can run next to a development stack.
+#
+#   npm run test:infra:up --workspace=@echoguide/api
+#   npm run test --workspace=@echoguide/api
+#   npm run test:infra:down --workspace=@echoguide/api
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: echoguide-postgres-test
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: echoguide_test
+      POSTGRES_PASSWORD: echoguide_test
+    ports:
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "max_connections=200"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echoguide_test -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: echoguide-redis-test
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

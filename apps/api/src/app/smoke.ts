@@ -1,170 +1,77 @@
-import { createApp } from './app';
+import { randomUUID } from 'node:crypto';
 
+/**
+ * Post-deploy smoke check against a running API: `SMOKE_BASE_URL=https://… npm run smoke`.
+ * Registers a throwaway device, exercises the authenticated path, then deletes the account it
+ * created. Makes no provider calls.
+ */
 type Check = { name: string; ok: boolean; detail: string };
 
-async function request(
-  base: string,
-  path: string,
-  init: RequestInit = {},
-): Promise<{ status: number; body: string }> {
-  const res = await fetch(`${base}${path}`, init);
-  return { status: res.status, body: await res.text() };
-}
+const base = (process.env.SMOKE_BASE_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
 
-function parse(body: string): Record<string, unknown> {
+async function call(path: string, init: RequestInit = {}): Promise<{ status: number; body: Record<string, unknown> }> {
+  const res = await fetch(`${base}${path}`, init);
+  const text = await res.text();
+  let body: Record<string, unknown> = {};
   try {
-    return JSON.parse(body) as Record<string, unknown>;
+    body = text ? (JSON.parse(text) as Record<string, unknown>) : {};
   } catch {
-    return {};
+    body = {};
   }
+  return { status: res.status, body };
 }
 
 async function main(): Promise<void> {
-  const app = createApp();
-  const server = app.listen(0, '127.0.0.1');
-  await new Promise<void>((resolve, reject) => {
-    server.once('listening', resolve);
-    server.once('error', reject);
-  });
-  const address = server.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('Failed to bind smoke server');
-  }
-  const base = `http://127.0.0.1:${address.port}`;
-  const audio = Buffer.alloc(800, 1).toString('base64');
   const checks: Check[] = [];
+  const check = (name: string, ok: boolean, detail: string) => checks.push({ name, ok, detail });
 
-  try {
-    const health = await request(base, '/health');
-    const healthJson = parse(health.body);
-    checks.push({
-      name: 'health',
-      ok: health.status === 200 && healthJson.status === 'ok',
-      detail: `${health.status} ${health.body}`,
-    });
+  const health = await call('/health');
+  check('health', health.status === 200 && health.body.status === 'ok', `HTTP ${health.status}`);
 
-    const phrases = await request(base, '/v1/phrases?language=en-US');
-    const phrasesJson = parse(phrases.body);
-    const phraseMap = phrasesJson.phrases as Record<string, string> | undefined;
-    checks.push({
-      name: 'phrases en-US',
-      ok:
-        phrases.status === 200 &&
-        Boolean(phraseMap?.ACK) &&
-        Boolean(phraseMap?.ERR_BILLING) &&
-        Boolean(phraseMap?.RETRY),
-      detail: `${phrases.status} ${phrases.body.slice(0, 180)}`,
-    });
+  const ready = await call('/ready');
+  check('ready', ready.status === 200, `HTTP ${ready.status} ${JSON.stringify(ready.body)}`);
 
-    const badLang = await request(base, '/v1/phrases?language=xx');
-    checks.push({
-      name: 'phrases invalid language',
-      ok: badLang.status === 400,
-      detail: `HTTP ${badLang.status}`,
-    });
+  const phrases = await call('/v1/phrases?language=en-US');
+  check('phrases', phrases.status === 200 && typeof phrases.body.phrases === 'object', `HTTP ${phrases.status}`);
 
-    const command = await request(base, '/v1/commands', {
+  const unauth = await call('/v1/users/me');
+  check('users/me requires a session', unauth.status === 401, `HTTP ${unauth.status}`);
+
+  const installId = `smoke-${randomUUID()}`;
+  const reg = await call('/v1/auth/register-device', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ install_id: installId, model: 'smoke-check', locale: 'en-US' }),
+  });
+  const token = typeof reg.body.session_token === 'string' ? reg.body.session_token : '';
+  check('register-device issues a session', reg.status === 200 && token.startsWith('egs_'), `HTTP ${reg.status}`);
+
+  if (token) {
+    const headers = { authorization: `Bearer ${token}`, 'x-install-id': installId };
+    const me = await call('/v1/users/me', { headers });
+    check('users/me with the session', me.status === 200 && typeof me.body.user_id === 'string', `HTTP ${me.status}`);
+
+    const hijack = await call('/v1/auth/register-device', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': '11111111-1111-4111-8111-111111111111',
-        'X-Install-ID': 'missing-device',
-        'X-Request-ID': '33333333-3333-4333-8333-333333333333',
-      },
-      body: JSON.stringify({
-        audio_base64: audio,
-        duration_ms: 800,
-        language: 'am-ET',
-        screen_context: { current_package: 'com.whatsapp', view_tree_summary: 'send' },
-      }),
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ install_id: installId }),
     });
-    const commandJson = parse(command.body);
-    checks.push({
-      name: 'command fail-closed on ungranted app',
-      ok:
-        command.status === 200 &&
-        commandJson.status === 'REJECTED' &&
-        commandJson.speak_code === 'ERR_REJECTED' &&
-        commandJson.action_plan === undefined,
-      detail: `${command.status} ${command.body}`,
-    });
+    check('install id cannot be re-registered without its session', hijack.status === 409, `HTTP ${hijack.status}`);
 
-    const missing = await request(base, '/v1/commands', {
+    const telemetry = await call('/v1/telemetry/events', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ outcome: 'done', duration_ms: 1, stage_timings: {} }),
     });
-    checks.push({
-      name: 'command missing headers',
-      ok: missing.status === 400,
-      detail: `HTTP ${missing.status}`,
-    });
+    check('telemetry accepted', telemetry.status === 202, `HTTP ${telemetry.status}`);
 
-    const telemetry = await request(base, '/v1/telemetry/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        outcome: 'done',
-        duration_ms: 1200,
-        stage_timings: { stt_ms: 200 },
-      }),
-    });
-    checks.push({
-      name: 'telemetry buffer',
-      ok: telemetry.status === 202,
-      detail: `HTTP ${telemetry.status} ${telemetry.body}`,
-    });
-
-    const transcript = await request(base, '/v1/telemetry/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        outcome: 'done',
-        duration_ms: 1,
-        stage_timings: {},
-        transcript: 'hello',
-      }),
-    });
-    checks.push({
-      name: 'telemetry reject transcript',
-      ok: transcript.status === 400,
-      detail: `HTTP ${transcript.status}`,
-    });
-
-    const consent = await request(base, '/v1/consent/grants', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope: 'audio_retention', granted: true }),
-    });
-    checks.push({
-      name: 'consent unauthorized without user',
-      ok: consent.status === 401,
-      detail: `HTTP ${consent.status}`,
-    });
-
-    const appGrant = await request(base, '/v1/app-grants', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ package_name: 'com.whatsapp', granted: true }),
-    });
-    checks.push({
-      name: 'app grant unauthorized without user',
-      ok: appGrant.status === 401,
-      detail: `HTTP ${appGrant.status}`,
-    });
-  } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((err) => (err ? reject(err) : resolve()));
-    });
+    const deletion = await call('/v1/consent/user-data', { method: 'DELETE', headers });
+    check('smoke account deletion queued', deletion.status === 202, `HTTP ${deletion.status}`);
   }
 
-  for (const check of checks) {
-    console.log(JSON.stringify({ check: check.name, ok: check.ok, detail: check.detail }));
-  }
-  if (checks.some((check) => !check.ok)) {
-    process.exit(1);
-  }
-  console.log(JSON.stringify({ event: 'smoke.passed', count: checks.length }));
+  for (const c of checks) console.log(JSON.stringify({ check: c.name, ok: c.ok, detail: c.detail }));
+  if (checks.some((c) => !c.ok)) process.exit(1);
+  console.log(JSON.stringify({ event: 'smoke.passed', count: checks.length, base }));
 }
 
 main().catch((error: unknown) => {

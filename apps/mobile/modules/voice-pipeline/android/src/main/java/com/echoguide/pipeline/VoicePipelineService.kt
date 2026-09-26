@@ -4,9 +4,11 @@ import android.content.Context
 import com.echoguide.executor.AccessibilityExecutorService
 import com.echoguide.executor.PlanValidator
 import com.echoguide.network.ActionPlan
+import com.echoguide.network.AuthApi
 import com.echoguide.network.CommandApi
 import com.echoguide.network.CommandResult
 import com.echoguide.network.ScreenContext
+import com.echoguide.network.SessionManager
 import com.echoguide.network.SpeakCode
 import com.echoguide.network.TelemetryClient
 import com.echoguide.speech.PhraseCatalog
@@ -33,6 +35,12 @@ class VoicePipelineService private constructor(private val context: Context) {
   private val state = ServiceStateStore(context)
   private val api = CommandApi()
   private val telemetry = TelemetryClient()
+  private val sessions = SessionManager(
+    api = AuthApi(),
+    store = state,
+    model = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+    locale = { state.language },
+  )
   private val capture = AudioCapture()
   private val synthesizer = SpeechSynthesizer(context)
   private val machine = CommandStateMachine()
@@ -146,14 +154,8 @@ class VoicePipelineService private constructor(private val context: Context) {
   fun wakeWord(): String = state.wakeWord
 
   fun registerDevice() {
-    if (state.isRegistered) return
     worker.execute {
-      val ok = api.registerDevice(
-        installId = state.installId,
-        model = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
-        language = state.language,
-      )
-      if (ok) state.isRegistered = true
+      state.isRegistered = sessions.credentials() != null
     }
   }
 
@@ -222,14 +224,24 @@ class VoicePipelineService private constructor(private val context: Context) {
           STILL_WORKING_AFTER_MS,
           TimeUnit.MILLISECONDS,
         )
-        val result = api.submit(
-          audio = recorded.pcm,
-          durationMs = recorded.durationMs.coerceIn(MIN_UPLOAD_MS, MAX_UPLOAD_MS),
-          language = state.language,
-          screen = ScreenContext(foreground, screen?.summary.orEmpty()),
-          installId = state.installId,
-          requestId = requestId,
-        )
+        val submit = { credentials: com.echoguide.network.Credentials? ->
+          api.submit(
+            audio = recorded.pcm,
+            durationMs = recorded.durationMs.coerceIn(MIN_UPLOAD_MS, MAX_UPLOAD_MS),
+            language = state.language,
+            screen = ScreenContext(foreground, screen?.summary.orEmpty()),
+            installId = credentials?.installId ?: state.installId,
+            requestId = requestId,
+            sessionToken = credentials?.sessionToken,
+          )
+        }
+        val credentials = sessions.credentials()
+        var result = submit(credentials)
+        // A rejected session never ran the command, so one retry with a fresh session is safe.
+        if (result is CommandResult.Failed && result.unauthorized && credentials != null) {
+          sessions.invalidate(credentials.sessionToken)
+          result = submit(sessions.credentials())
+        }
         stillWorking.cancel(false)
         handleServer(
           result,
@@ -333,7 +345,10 @@ class VoicePipelineService private constructor(private val context: Context) {
         "timestamp" to isoTimestamp(),
       ),
     )
-    telemetry.emit(outcome, durationMs, stageTimings, state.installId, requestId)
+    worker.execute {
+      val credentials = sessions.credentials()
+      telemetry.emit(outcome, durationMs, stageTimings, credentials?.installId ?: state.installId, requestId, credentials?.sessionToken)
+    }
     publishState()
   }
 

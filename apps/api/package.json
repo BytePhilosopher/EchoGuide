@@ -5,13 +5,23 @@
   "main": "dist/app/server.js",
   "scripts": {
     "dev": "tsx watch src/app/server.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/app/server.js",
+    "start:worker": "node dist/app/worker.js",
     "smoke": "tsx src/app/smoke.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test --test-timeout=60000 \"src/**/*.test.ts\"",
+    "test:unit": "node --import tsx --test --test-timeout=30000 \"src/modules/**/*.test.ts\" \"src/shared/**/*.test.ts\" \"src/test/golden/*.test.ts\"",
+    "test:integration": "node --import tsx --test --test-timeout=60000 \"src/test/integration/*.test.ts\"",
+    "test:golden:live": "GOLDEN_AUDIO_LIVE=1 node --import tsx --test src/test/golden/golden-live.test.ts",
+    "test:infra:up": "docker compose -f ../../docker-compose.test.yml up -d --wait",
+    "test:infra:down": "docker compose -f ../../docker-compose.test.yml down -v",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:rollback": "tsx src/shared/database/rollback.ts"
+    "db:migrate": "node dist/shared/database/migrate.js",
+    "db:migrate:dev": "tsx src/shared/database/migrate.ts",
+    "db:rollback": "node dist/shared/database/rollback.js",
+    "db:rollback:dev": "tsx src/shared/database/rollback.ts",
+    "admin": "node dist/modules/admin/admin.cli.js"
   },
   "dependencies": {
     "@echoguide/openapi": "*",
@@ -31,6 +41,10 @@
     "@types/pg": "^8.11.5",
     "drizzle-kit": "^0.31.11",
     "tsx": "^4.7.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "yaml": "^2.9.1"
+  },
+  "engines": {
+    "node": ">=20.11.0"
   }
 }

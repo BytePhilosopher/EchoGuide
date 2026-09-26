@@ -1,0 +1,7 @@
+{
+  "data": { "transcription": "open chats" },
+  "segments": [
+    { "start": 0.0, "end": 0.6, "avg_logprob": -0.21, "no_speech_prob": 0.02, "compression_ratio": 1.1 },
+    { "start": 0.6, "end": 1.1, "avg_logprob": -0.35, "no_speech_prob": 0.03, "compression_ratio": 1.2 }
+  ]
+}

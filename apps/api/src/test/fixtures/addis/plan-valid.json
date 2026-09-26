@@ -1,0 +1,1 @@
+{ "response_text": "{\"package_name\":\"com.whatsapp\",\"requires_user_confirmation\":false,\"steps\":[{\"action_type\":\"TAP\",\"target_node_id\":\"n1\",\"payload\":null,\"is_destructive\":false}]}" }

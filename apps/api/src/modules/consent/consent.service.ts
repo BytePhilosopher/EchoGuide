@@ -1,4 +1,4 @@
-import { deleteUserCascade, findLatestGrant, insertGrant } from './consent.repository';
+import { ConsentRepository } from './consent.repository';
 
 export const AUDIO_RETENTION_SCOPE = 'audio_retention';
 
@@ -8,39 +8,30 @@ export type ConsentState = {
   created_at: string | null;
 };
 
-export async function recordGrant(
-  userId: string,
-  scope: string,
-  granted: boolean,
-): Promise<{ status: 'recorded'; scope: string; granted: boolean }> {
-  const row = await insertGrant(userId, scope, granted);
-  return { status: 'recorded', scope, granted: row?.granted ?? granted };
-}
+export class ConsentService {
+  constructor(private readonly repo: ConsentRepository) {}
 
-export async function getCurrentConsent(userId: string, scope: string): Promise<ConsentState> {
-  const row = await findLatestGrant(userId, scope);
-  return {
-    scope,
-    granted: row?.granted === true,
-    created_at: row?.createdAt.toISOString() ?? null,
-  };
-}
+  async recordGrant(userId: string, scope: string, granted: boolean): Promise<{ status: 'recorded'; scope: string; granted: boolean }> {
+    const row = await this.repo.insertGrant(userId, scope, granted);
+    return { status: 'recorded', scope: row.scope, granted: row.granted };
+  }
 
-export async function isGranted(userId: string, scope: string): Promise<boolean> {
-  const current = await getCurrentConsent(userId, scope);
-  return current.granted;
-}
+  async getCurrentConsent(userId: string, scope: string): Promise<ConsentState> {
+    const row = await this.repo.findLatestGrant(userId, scope);
+    return {
+      scope,
+      granted: row?.granted === true,
+      created_at: row?.createdAt.toISOString() ?? null,
+    };
+  }
 
-export async function withRetention<T>(
-  userId: string,
-  scope: string,
-  write: () => Promise<T>,
-): Promise<T | null> {
-  if (!(await isGranted(userId, scope))) return null;
-  return write();
-}
+  async isGranted(userId: string, scope: string): Promise<boolean> {
+    return (await this.getCurrentConsent(userId, scope)).granted;
+  }
 
-export async function requestDeletion(userId: string): Promise<{ status: 'deletion_queued'; task_id: string }> {
-  await deleteUserCascade(userId);
-  return { status: 'deletion_queued', task_id: `del-job-${Date.now()}` };
+  /** Runs a retention write only while the user's consent for the scope is current. */
+  async withRetention<T>(userId: string, scope: string, write: () => Promise<T>): Promise<T | null> {
+    if (!(await this.isGranted(userId, scope))) return null;
+    return write();
+  }
 }

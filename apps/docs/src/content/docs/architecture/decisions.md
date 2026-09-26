@@ -13,7 +13,7 @@ Each needs its own ADR before implementation, because each is expensive to rever
 | 002 | Modular monolith over separate services | Yes | Yes |
 | 003 | OpenAPI as the single contract source | Yes | Yes |
 | 004 | Addis AI as the single voice vendor | Yes | No |
-| 005 | Opaque device-bound sessions over JWT | Yes | No |
+| 005 | Opaque device-bound sessions over JWT | Yes | Yes |
 | 006 | No transcript or audio persistence by default | Yes | No |
 | 007 | No over-the-air JavaScript bundle updates | Yes | No |
 | 008 | Split speech output — device TTS for English, vendor for Amharic | Yes | No |
@@ -21,7 +21,7 @@ Each needs its own ADR before implementation, because each is expensive to rever
 | 010 | Voxide on the docs site, deferred for the admin portal | No | No |
 | 011 | Bilingual launch or English-only | Blocked on the Amharic corpus | No |
 
-"Recorded" means an ADR file exists in `docs/adr/`. Today that is 001 to 003.
+"Recorded" means an ADR file exists in `docs/adr/`. Today that is 001 to 003 and 005.
 
 ## Risk register
 

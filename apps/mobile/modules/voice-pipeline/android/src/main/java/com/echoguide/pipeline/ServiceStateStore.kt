@@ -2,14 +2,28 @@ package com.echoguide.pipeline
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.echoguide.network.CredentialStore
 
-class ServiceStateStore(context: Context) {
+class ServiceStateStore(context: Context) : CredentialStore {
   private val prefs: SharedPreferences =
     context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-  var installId: String
+  override val installId: String
     get() = prefs.getString(KEY_INSTALL_ID, null) ?: newInstallId()
-    set(value) = prefs.edit().putString(KEY_INSTALL_ID, value).apply()
+
+  // App-private storage, alongside the install id it is bound to. Neither is useful alone.
+  override var sessionToken: String?
+    get() = prefs.getString(KEY_SESSION_TOKEN, null)
+    set(value) = prefs.edit().putString(KEY_SESSION_TOKEN, value).apply()
+
+  override var sessionExpiresAtMs: Long
+    get() = prefs.getLong(KEY_SESSION_EXPIRES_AT, 0L)
+    set(value) = prefs.edit().putLong(KEY_SESSION_EXPIRES_AT, value).apply()
+
+  override fun rotateInstallId(): String {
+    prefs.edit().remove(KEY_SESSION_TOKEN).remove(KEY_SESSION_EXPIRES_AT).apply()
+    return newInstallId()
+  }
 
   var language: String
     get() = prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
@@ -40,6 +54,8 @@ class ServiceStateStore(context: Context) {
   private companion object {
     const val FILE = "echoguide_service_state"
     const val KEY_INSTALL_ID = "install_id"
+    const val KEY_SESSION_TOKEN = "session_token"
+    const val KEY_SESSION_EXPIRES_AT = "session_expires_at_ms"
     const val KEY_LANGUAGE = "language"
     const val KEY_WAKE_WORD = "wake_word_enabled"
     const val KEY_CONSENT = "consent_granted"

@@ -29,8 +29,10 @@ Nothing here has an independent scaling axis yet, so nothing is a separate servi
 that would change that.
 
 :::note[In the repository]
-`apps/api/src/modules/` currently has `admin`, `auth`, `commands`, `consent`, `telemetry` and
-`users`. `vocabulary` and `billing` are designed but not yet scaffolded.
+`apps/api/src/modules/` has every module above. `billing` gates commands only when
+`BILLING_MODE=enforced`; no payment provider is integrated, and `PaymentProvider` is the boundary for
+one. `vocabulary` stores per-user terms; they are offered to transcription only once
+`ADDIS_STT_VOCABULARY_FIELD` names the vendor's field, which is not yet confirmed.
 :::
 
 ## The dependency rule

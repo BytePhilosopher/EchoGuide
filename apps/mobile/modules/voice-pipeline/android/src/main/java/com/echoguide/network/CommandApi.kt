@@ -14,7 +14,8 @@ import org.json.JSONObject
 
 sealed interface CommandResult {
   data class Success(val response: CommandResponse) : CommandResult
-  data class Failed(val speakCode: SpeakCode) : CommandResult
+  /** `unauthorized`: the server rejected the session (401); refresh it and try once more. */
+  data class Failed(val speakCode: SpeakCode, val unauthorized: Boolean = false) : CommandResult
 }
 
 class CommandApi(
@@ -30,6 +31,7 @@ class CommandApi(
     screen: ScreenContext,
     installId: String,
     requestId: String,
+    sessionToken: String? = null,
   ): CommandResult {
     if (!breaker.allowsRequest()) return CommandResult.Failed(SpeakCode.ERR_NETWORK)
 
@@ -49,6 +51,7 @@ class CommandApi(
     val request = Request.Builder()
       .url("$baseUrl/v1/commands")
       .header("X-Install-ID", installId)
+      .apply { sessionToken?.let { header("Authorization", "Bearer $it") } }
       .header("X-Idempotency-Key", idempotencyKey)
       .header("X-Request-ID", requestId)
       .post(body.toRequestBody(JSON))
@@ -62,7 +65,7 @@ class CommandApi(
         }
         is Attempt.Fatal -> {
           breaker.recordSuccess()
-          return CommandResult.Failed(outcome.speakCode)
+          return CommandResult.Failed(outcome.speakCode, outcome.unauthorized)
         }
         is Attempt.Retryable -> {
           breaker.recordFailure()
@@ -72,25 +75,6 @@ class CommandApi(
       }
     }
     return CommandResult.Failed(SpeakCode.ERR_NETWORK)
-  }
-
-  fun registerDevice(installId: String, model: String, language: String): Boolean {
-    val body = JSONObject()
-      .put("install_id", installId)
-      .put("model", model)
-      .put("locale", language)
-      .toString()
-
-    val request = Request.Builder()
-      .url("$baseUrl/v1/auth/register-device")
-      .post(body.toRequestBody(JSON))
-      .build()
-
-    return try {
-      client.newCall(request).execute().use { it.isSuccessful }
-    } catch (_: IOException) {
-      false
-    }
   }
 
   fun fetchPhrases(language: String): Map<String, String>? {
@@ -115,7 +99,7 @@ class CommandApi(
   private sealed interface Attempt {
     data class Ok(val response: CommandResponse) : Attempt
     data class Retryable(val speakCode: SpeakCode) : Attempt
-    data class Fatal(val speakCode: SpeakCode) : Attempt
+    data class Fatal(val speakCode: SpeakCode, val unauthorized: Boolean = false) : Attempt
   }
 
   private fun runAttempt(request: Request): Attempt = try {
@@ -125,6 +109,7 @@ class CommandApi(
         response.isSuccessful -> runCatching { CommandResponseParser.parse(payload) }
           .fold({ Attempt.Ok(it) }, { Attempt.Retryable(SpeakCode.ERR_NETWORK) })
 
+        response.code == 401 -> Attempt.Fatal(SpeakCode.ERR_NETWORK, unauthorized = true)
         response.code in 400..499 -> Attempt.Fatal(SpeakCode.ERR_REJECTED)
         else -> Attempt.Retryable(SpeakCode.ERR_NETWORK)
       }

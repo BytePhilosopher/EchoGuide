@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "syn-en-confident-score",
+      "language": "en-US",
+      "source": "synthetic",
+      "description": "Provider returns a 0..1 score above the floor.",
+      "audio": { "kind": "synthetic", "signal": "tone", "duration_ms": 1200 },
+      "expected_transcript": "open chats",
+      "provider_fixture": "stt-with-confidence",
+      "expected": { "gate": "VALIDATED", "http_status": 200, "status": "ACCEPTED" }
+    },
+    {
+      "id": "syn-en-segments-confident",
+      "language": "en-US",
+      "source": "synthetic",
+      "description": "Whisper-style segments, avg_logprob above -1.0.",
+      "audio": { "kind": "synthetic", "signal": "noise", "duration_ms": 1100 },
+      "provider_fixture": "stt-segments-whisper",
+      "expected": { "gate": "VALIDATED", "http_status": 200, "status": "ACCEPTED" }
+    },
+    {
+      "id": "syn-am-no-confidence",
+      "language": "am-ET",
+      "source": "synthetic",
+      "description": "The documented normal case: transcript, no score. Must be confirmed, never silently rejected.",
+      "audio": { "kind": "synthetic", "signal": "tone", "duration_ms": 1500 },
+      "provider_fixture": "stt-transcript-only",
+      "expected": { "gate": "CONFIDENCE_UNAVAILABLE", "http_status": 200, "status": "CONFIRMATION_REQUIRED" }
+    },
+    {
+      "id": "syn-en-low-logprob",
+      "language": "en-US",
+      "source": "synthetic",
+      "audio": { "kind": "synthetic", "signal": "noise", "duration_ms": 900 },
+      "provider_fixture": "stt-low-logprob",
+      "expected": { "gate": "LOW_CONFIDENCE", "http_status": 200, "status": "REPROMPT" }
+    },
+    {
+      "id": "syn-am-silence-no-speech",
+      "language": "am-ET",
+      "source": "synthetic",
+      "audio": { "kind": "synthetic", "signal": "silence", "duration_ms": 2000 },
+      "provider_fixture": "stt-no-speech",
+      "expected": { "gate": "NO_SPEECH", "http_status": 200, "status": "REPROMPT" }
+    },
+    {
+      "id": "syn-en-repetition-loop",
+      "language": "en-US",
+      "source": "synthetic",
+      "audio": { "kind": "synthetic", "signal": "tone", "duration_ms": 3000 },
+      "provider_fixture": "stt-repetition",
+      "expected": { "gate": "REPETITION", "http_status": 200, "status": "REPROMPT" }
+    },
+    {
+      "id": "syn-en-provider-schema-drift",
+      "language": "en-US",
+      "source": "synthetic",
+      "audio": { "kind": "synthetic", "signal": "tone", "duration_ms": 1000 },
+      "provider_fixture": "stt-malformed",
+      "expected": { "gate": "INVALID_PROVIDER_RESPONSE", "http_status": 502 }
+    },
+    {
+      "id": "syn-too-short",
+      "language": "en-US",
+      "source": "synthetic",
+      "description": "Under 0.4 s never reaches the provider.",
+      "audio": { "kind": "synthetic", "signal": "tone", "duration_ms": 300 },
+      "expected": { "gate": "NOT_SENT", "http_status": 400 }
+    },
+    {
+      "id": "syn-too-long",
+      "language": "en-US",
+      "source": "synthetic",
+      "description": "Over the 15 s hard stop never reaches the provider.",
+      "audio": { "kind": "synthetic", "signal": "noise", "duration_ms": 17000 },
+      "expected": { "gate": "NOT_SENT", "http_status": 400 }
+    }
+  ]
+}

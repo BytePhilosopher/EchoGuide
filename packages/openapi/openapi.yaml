@@ -1,10 +1,20 @@
 openapi: 3.0.3
 info:
   title: EchoGuide API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Contract for the EchoGuide backend. This file is the single source of truth: the Zod
     schemas, TypeScript types, Kotlin client and docs reference are all generated from it.
+
+    **Authentication.** Devices call `register-device` once and receive an opaque session token.
+    Every user route requires both `Authorization: Bearer <session_token>` and the
+    `X-Install-ID` the token was issued to. Admin routes use a separate admin credential.
+
+    **Correlation.** Every response carries `X-Request-ID`. A client may send its own
+    `X-Request-ID` (a UUID); anything else is replaced with a server-generated id.
+
+    **Errors.** Every error body is `{"error": "<safe message>"}`. Provider and database detail
+    is never returned.
   license:
     name: Proprietary
     url: https://github.com/dawitlabs/EchoGuide
@@ -15,9 +25,9 @@ servers:
     description: Local development
 tags:
   - name: health
-    description: Liveness probe for the availability SLO.
+    description: Liveness and readiness probes for the availability SLO.
   - name: auth
-    description: Device registration and session issue.
+    description: Device registration, session refresh and revocation.
   - name: users
     description: The signed-in user's profile and preferences.
   - name: commands
@@ -26,6 +36,8 @@ tags:
     description: Append-only retention grants and data deletion.
   - name: app-grants
     description: Append-only per-app capability grants. A plan for an app without a grant never reaches the phone.
+  - name: vocabulary
+    description: Per-user words that bias speech recognition. Never sent to the planner, never logged.
   - name: telemetry
     description: Outcome and latency events. Never transcripts or audio.
   - name: billing
@@ -33,7 +45,7 @@ tags:
   - name: phrases
     description: Pre-synthesised spoken lines. Closed set, refreshed on language change.
   - name: admin
-    description: Support tooling. Every route requires a named permission.
+    description: Support tooling. Every route requires a named permission and is audited.
 
 paths:
   /health:
@@ -41,6 +53,7 @@ paths:
       tags: [health]
       operationId: getHealth
       summary: Liveness probe
+      description: Never touches a dependency. Use `/ready` to decide whether to route traffic.
       security: []
       responses:
         '200':
@@ -50,12 +63,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
+  /ready:
+    get:
+      tags: [health]
+      operationId: getReadiness
+      summary: Readiness probe
+      description: Ready when Postgres is reachable. Redis is reported but not required (the API degrades without it).
+      security: []
+      responses:
+        '200':
+          description: This instance can serve traffic.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+        '503':
+          description: Postgres is unreachable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+
   /v1/auth/register-device:
     post:
       tags: [auth]
       operationId: registerDevice
       summary: Register a device and issue a session
-      security: []
+      description: |
+        A new install id creates an account and a session. Re-registering an install id that is
+        already registered requires that device's current session in `Authorization`; the old
+        session is revoked and a new one issued. Without it the answer is 409 and the client
+        should start a new install. Rate limited per client IP.
+      security:
+        - {}
+        - sessionToken: []
       requestBody:
         required: true
         content:
@@ -65,18 +106,76 @@ paths:
       responses:
         '200':
           description: Device registered; the session is bound to the install id.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RegisterDeviceResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshSession
+      summary: Rotate the session token
+      description: |
+        Revokes the presented token and issues a new one. A token that expired recently (within
+        the server's refresh grace period) may still be refreshed; a revoked token never can.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      responses:
+        '200':
+          description: The new session. The presented token no longer works.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshSessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Revoke the current session
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      responses:
+        '204':
+          description: The session is revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/users/me:
     get:
       tags: [users]
       operationId: getCurrentUser
       summary: Get the signed-in user's profile
+      description: The user is always the session's owner. No user id is read from the request.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
       responses:
         '200':
           description: The current user.
@@ -86,12 +185,21 @@ paths:
                 $ref: '#/components/schemas/CurrentUser'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/commands:
     post:
       tags: [commands]
       operationId: processCommand
       summary: Transcribe a voice buffer and plan actions against the current screen
+      description: |
+        Rate limited per user. A retry with the same `X-Idempotency-Key` and body replays the
+        first response (header `Idempotent-Replayed: true`) instead of running or billing twice;
+        a duplicate that arrives while the first is still running waits for its result.
+        Provider trouble is 502/503/504 and is safe to retry with the same key.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/InstallId'
@@ -112,10 +220,24 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
 
   /v1/consent/grants:
     post:
@@ -123,6 +245,8 @@ paths:
       operationId: recordConsent
       summary: Record a consent grant or revocation
       description: Consent is append-only. Revoking writes a new row with granted set to false.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
       requestBody:
         required: true
         content:
@@ -140,6 +264,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/consent/grants/current:
     get:
@@ -148,12 +276,12 @@ paths:
       summary: Current consent state for a scope
       description: Latest row per (user_id, scope). Missing rows are treated as not granted.
       parameters:
+        - $ref: '#/components/parameters/InstallId'
         - name: scope
           in: query
           required: true
           schema:
-            type: string
-            minLength: 1
+            $ref: '#/components/schemas/ConsentScope'
       responses:
         '200':
           description: The current grant state.
@@ -165,6 +293,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/consent/user-data:
     delete:
@@ -172,10 +304,15 @@ paths:
       operationId: deleteUserData
       summary: Delete all of the signed-in user's data
       description: |
-        Rows are deleted by cascade. Retained audio in object storage is removed by a job that
-        retries until it succeeds; deletion is only reported complete once it has.
+        Marks the account deleted at once (its sessions stop working for everything except
+        repeating this request) and queues a durable job. The job removes the user's objects from
+        storage, then deletes the user row, which cascades to every table. It retries with backoff
+        and is reported `completed` only once every step has succeeded. Repeating the request
+        returns the job already in flight. Poll `/v1/consent/user-data/jobs/{taskId}` for progress.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
       responses:
-        '200':
+        '202':
           description: Deletion accepted and queued.
           content:
             application/json:
@@ -183,6 +320,41 @@ paths:
                 $ref: '#/components/schemas/DeletionResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/consent/user-data/jobs/{taskId}:
+    get:
+      tags: [consent]
+      operationId: getDeletionJob
+      summary: Progress of a data deletion job
+      description: |
+        The task id is an unguessable capability returned by the deletion request. It works after
+        the account is gone and reveals only the job's progress. Rate limited per client IP.
+      security: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The job's current state.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletionJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/app-grants:
     post:
@@ -209,6 +381,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
     get:
       tags: [app-grants]
       operationId: listAppGrants
@@ -225,12 +401,128 @@ paths:
                 $ref: '#/components/schemas/AppGrantListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/vocabulary:
+    get:
+      tags: [vocabulary]
+      operationId: listVocabulary
+      summary: The signed-in user's vocabulary terms
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      responses:
+        '200':
+          description: Every term the user has added, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [vocabulary]
+      operationId: createVocabularyTerm
+      summary: Add a term
+      description: Terms are unique per user, ignoring case. A user may hold at most 500.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VocabularyTermCreate'
+      responses:
+        '201':
+          description: The term was added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyTerm'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/vocabulary/{termId}:
+    parameters:
+      - name: termId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [vocabulary]
+      operationId: updateVocabularyTerm
+      summary: Change a term
+      description: A term owned by another user is indistinguishable from one that does not exist (404).
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VocabularyTermUpdate'
+      responses:
+        '200':
+          description: The updated term.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyTerm'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [vocabulary]
+      operationId: deleteVocabularyTerm
+      summary: Remove a term
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
+      responses:
+        '204':
+          description: The term was removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/telemetry/events:
     post:
       tags: [telemetry]
       operationId: recordTelemetryEvent
       summary: Record a command outcome and its stage timings
+      description: The event is attributed to the session's user. A body that names a user is refused.
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
       requestBody:
         required: true
         content:
@@ -248,12 +540,18 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/billing/entitlement:
     get:
       tags: [billing]
       operationId: getEntitlement
       summary: Current subscription entitlement and usage
+      parameters:
+        - $ref: '#/components/parameters/InstallId'
       responses:
         '200':
           description: The signed-in user's entitlement.
@@ -263,6 +561,10 @@ paths:
                 $ref: '#/components/schemas/Entitlement'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/phrases:
     get:
@@ -285,13 +587,15 @@ paths:
                 $ref: '#/components/schemas/PhraseCatalog'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/admin/users/{userId}:
     get:
       tags: [admin]
       operationId: getAdminUser
       summary: Look up a user
-      description: 'Requires the `users.read` permission. Audited.'
+      description: 'Requires the `users.read` permission. Audited, including denials and misses.'
       security:
         - adminSession: []
       x-permission: users.read
@@ -310,13 +614,18 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /v1/admin/users/{userId}/suspend:
     post:
       tags: [admin]
       operationId: suspendUser
       summary: Suspend a user's account
-      description: 'Requires the `users.suspend` permission. Audited.'
+      description: |
+        Requires the `users.suspend` permission. Audited. Idempotent: suspending a suspended
+        account succeeds and is audited as unchanged. A suspended account's sessions are kept but
+        every user route answers 403 until the account is reinstated.
       security:
         - adminSession: []
       x-permission: users.suspend
@@ -335,6 +644,39 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/admin/users/{userId}/reinstate:
+    post:
+      tags: [admin]
+      operationId: reinstateUser
+      summary: Lift a suspension
+      description: 'Requires the `users.suspend` permission. Audited. Idempotent.'
+      security:
+        - adminSession: []
+      x-permission: users.suspend
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: The account is active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReinstateUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
 security:
   - sessionToken: []
@@ -344,11 +686,27 @@ components:
     sessionToken:
       type: http
       scheme: bearer
-      description: Opaque session token from register-device, bound to the device's install id.
+      description: |
+        Opaque session token (`egs_…`) from register-device, bound to the device's install id.
+        Must be sent together with the matching `X-Install-ID`. Only a hash is stored server-side.
     adminSession:
       type: http
       scheme: bearer
-      description: Separate admin credential. Each admin route also requires a named permission row.
+      description: |
+        Separate admin credential (`ega_…`), issued by an operator. Each admin route also requires
+        a named permission row. A user session token is never accepted here.
+
+  headers:
+    NoStore:
+      description: Responses carrying credentials must not be cached.
+      schema:
+        type: string
+        enum: [no-store]
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+        minimum: 1
 
   parameters:
     IdempotencyKey:
@@ -363,10 +721,11 @@ components:
       name: X-Install-ID
       in: header
       required: true
-      description: Identifies the installation, not the person. Sessions are bound to it.
+      description: The install id the session token was issued to. Not a credential on its own.
       schema:
         type: string
-        minLength: 1
+        minLength: 16
+        maxLength: 128
     UserId:
       name: userId
       in: path
@@ -377,37 +736,89 @@ components:
 
   responses:
     BadRequest:
-      description: The request failed validation, or the audio was shorter than 0.4 s.
+      description: The request failed validation, or the audio was shorter than 0.4 s or longer than 15 s.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Missing or invalid session.
+      description: Missing, malformed, unknown, expired or revoked credential, or a token presented without its install id.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
-      description: The admin lacks the permission this route requires.
+      description: The account is suspended, or the admin lacks the permission this route requires.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     NotFound:
-      description: No such resource.
+      description: No such resource, or one the caller may not see.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: |
+        The request conflicts with current state: the install id is already registered, a request
+        with this idempotency key is still running, the term already exists or the vocabulary is
+        full, or the account is being deleted.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    PayloadTooLarge:
+      description: The body exceeds the route's limit (small for JSON routes, audio-sized for commands).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: The idempotency key was already used with a different request body.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     TooManyRequests:
       description: Rate limit exceeded.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     InternalError:
-      description: A provider failed or timed out. Internal detail is never returned.
+      description: An unexpected failure. Internal detail is never returned.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadGateway:
+      description: The voice provider answered in a shape the server does not understand.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: The voice provider is failing or its circuit breaker is open, or billing status could not be verified.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    GatewayTimeout:
+      description: The voice provider did not answer within its timeout (transcription 8 s, planning 6 s).
       content:
         application/json:
           schema:
@@ -439,20 +850,45 @@ components:
         service:
           type: string
 
+    ReadyResponse:
+      type: object
+      required: [status, database, redis]
+      properties:
+        status:
+          type: string
+          enum: [ready, unavailable]
+        database:
+          type: string
+          enum: [ok, unavailable]
+        redis:
+          type: string
+          enum: [ok, unavailable]
+
     RegisterDeviceRequest:
       type: object
-      required: [phone_hash, install_id, model]
+      required: [install_id]
       properties:
+        install_id:
+          type: string
+          minLength: 16
+          maxLength: 128
+          pattern: '^[A-Za-z0-9._:-]{16,128}$'
+          description: Generated on the device (a UUID). Identifies the installation, not the person.
+        model:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Device model, for crash and latency analysis.
+        locale:
+          $ref: '#/components/schemas/Locale'
         phone_hash:
           type: string
           minLength: 1
-          description: The phone number, hashed on the device. The raw number is never sent.
-        install_id:
-          type: string
-          minLength: 1
-        model:
-          type: string
-          description: Device model, for crash and latency analysis.
+          maxLength: 128
+          deprecated: true
+          description: |
+            Accepted and ignored. Linking installs by phone number needs a verified number, and no
+            verification exists yet; an unverified hash would let anyone claim an account.
 
     RegisterDeviceResponse:
       type: object
@@ -468,6 +904,19 @@ components:
           type: integer
           minimum: 1
           description: Seconds until the session expires.
+
+    RefreshSessionResponse:
+      type: object
+      required: [status, session_token, expires_in]
+      properties:
+        status:
+          type: string
+          enum: [refreshed]
+        session_token:
+          type: string
+        expires_in:
+          type: integer
+          minimum: 1
 
     UserPreferences:
       type: object
@@ -485,6 +934,7 @@ components:
       properties:
         user_id:
           type: string
+          format: uuid
         locale:
           $ref: '#/components/schemas/Locale'
         preferences:
@@ -496,9 +946,11 @@ components:
       properties:
         current_package:
           type: string
-          description: Package name of the foreground app.
+          maxLength: 255
+          description: Package name of the foreground app. Empty when the accessibility service is off.
         view_tree_summary:
           type: string
+          maxLength: 65536
           description: The reduced view tree. Treated as data, never as instructions.
 
     CommandRequest:
@@ -507,7 +959,7 @@ components:
       properties:
         audio_base64:
           type: string
-          description: 16 kHz mono PCM 16-bit audio, base64-encoded.
+          description: 16 kHz mono PCM 16-bit audio, base64-encoded. Between 0.4 s and 15 s of audio.
         duration_ms:
           type: integer
           minimum: 400
@@ -563,6 +1015,9 @@ components:
             $ref: '#/components/schemas/ActionStep'
         requires_user_confirmation:
           type: boolean
+          description: |
+            True when any step is destructive, when the planner asked for confirmation, or when the
+            transcriber returned no confidence score (the server's unavailable-confidence policy).
 
     CommandResponse:
       type: object
@@ -571,6 +1026,7 @@ components:
         command_id:
           type: string
           format: uuid
+          description: The request id.
         status:
           $ref: '#/components/schemas/CommandStatus'
         reprompt_reason:
@@ -584,14 +1040,20 @@ components:
         speak_code:
           $ref: '#/components/schemas/PhraseKey'
 
+    ConsentScope:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: '^[a-z0-9_.-]+$'
+      description: What the grant covers, for example audio_retention.
+
     ConsentGrantRequest:
       type: object
       required: [scope, granted]
+      additionalProperties: false
       properties:
         scope:
-          type: string
-          minLength: 1
-          description: What the grant covers, for example audio retention.
+          $ref: '#/components/schemas/ConsentScope'
         granted:
           type: boolean
 
@@ -679,6 +1141,90 @@ components:
           enum: [deletion_queued]
         task_id:
           type: string
+          format: uuid
+          description: The deletion job's id. Use it with `/v1/consent/user-data/jobs/{taskId}`.
+
+    DeletionJobStatus:
+      type: string
+      enum: [queued, running, retrying, completed, failed]
+      description: |
+        `completed` only after storage and every database row are gone. `retrying` means a step
+        failed and will be tried again. `failed` means the retry limit was reached and an operator
+        has been alerted; the data is not yet deleted.
+
+    DeletionJob:
+      type: object
+      required: [task_id, status, created_at, completed_at]
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/DeletionJobStatus'
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    VocabularyKind:
+      type: string
+      enum: [contact, app, custom]
+
+    VocabularyTermText:
+      type: string
+      minLength: 1
+      maxLength: 64
+      description: Trimmed and NFC-normalised. Control characters are refused.
+
+    VocabularyTermCreate:
+      type: object
+      required: [term, kind]
+      additionalProperties: false
+      properties:
+        term:
+          $ref: '#/components/schemas/VocabularyTermText'
+        kind:
+          $ref: '#/components/schemas/VocabularyKind'
+
+    VocabularyTermUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        term:
+          $ref: '#/components/schemas/VocabularyTermText'
+        kind:
+          $ref: '#/components/schemas/VocabularyKind'
+
+    VocabularyTerm:
+      type: object
+      required: [term_id, term, kind, created_at, updated_at]
+      properties:
+        term_id:
+          type: string
+          format: uuid
+        term:
+          type: string
+        kind:
+          $ref: '#/components/schemas/VocabularyKind'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    VocabularyList:
+      type: object
+      required: [terms]
+      properties:
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/VocabularyTerm'
 
     CommandOutcome:
       type: string
@@ -702,9 +1248,11 @@ components:
           description: End of speech to terminal state.
         confidence:
           type: number
+          minimum: 0
+          maximum: 1
         stage_timings:
           type: object
-          description: Milliseconds per pipeline stage.
+          description: Milliseconds per pipeline stage. At most 16 stages.
           additionalProperties:
             type: integer
             minimum: 0
@@ -740,13 +1288,27 @@ components:
           additionalProperties:
             type: string
 
+    SubscriptionState:
+      type: string
+      enum: [ACTIVE, TRIAL, PAST_DUE, CANCELED, INACTIVE, EXPIRED, NONE, UNKNOWN]
+      description: |
+        Normalised state. EXPIRED is an active or trial row whose renewal date has passed. UNKNOWN
+        means the state could not be determined right now and is never treated as active.
+
     Entitlement:
       type: object
-      required: [status, renews_at, command_quota, commands_used]
+      required: [enforcement, state, status, renews_at, command_quota, commands_used]
       properties:
+        enforcement:
+          type: string
+          enum: [disabled, enforced]
+          description: Whether commands are gated on the subscription in this deployment.
+        state:
+          $ref: '#/components/schemas/SubscriptionState'
         status:
           type: string
           nullable: true
+          description: The raw stored status.
         renews_at:
           type: string
           format: date-time
@@ -760,19 +1322,25 @@ components:
 
     AccountStatus:
       type: string
-      enum: [active, suspended]
+      enum: [active, suspended, deleted]
+      description: '`deleted` means deletion has been requested and is in progress.'
 
     AdminUser:
       type: object
-      required: [userId, status, registered_at]
+      required: [userId, status, registered_at, suspended_at]
       properties:
         userId:
           type: string
+          format: uuid
         status:
           $ref: '#/components/schemas/AccountStatus'
         registered_at:
           type: string
           format: date-time
+        suspended_at:
+          type: string
+          format: date-time
+          nullable: true
 
     SuspendUserResponse:
       type: object
@@ -781,5 +1349,15 @@ components:
         status:
           type: string
           enum: [suspended]
+        userId:
+          type: string
+
+    ReinstateUserResponse:
+      type: object
+      required: [status, userId]
+      properties:
+        status:
+          type: string
+          enum: [active]
         userId:
           type: string

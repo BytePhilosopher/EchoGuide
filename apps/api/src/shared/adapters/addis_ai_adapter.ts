@@ -1,26 +1,56 @@
-interface ScreenContext {
+import { randomBytes, randomUUID } from 'node:crypto';
+import { currentScope } from '../context';
+import { describeError, logStructured } from '../logger';
+import { CircuitBreaker, CircuitOpenError } from '../resilience/circuit-breaker';
+import {
+  AddisAIResponseAdapter,
+  type NormalizedTranscription,
+  type ParseResult,
+} from './addis_ai_response_adapter';
+
+export interface ScreenContext {
   current_package: string;
   view_tree_summary: string;
 }
 
-export interface AddisSTTResponse {
-  text: string;
-  confidence: number;
-}
+export type AddisStage = 'transcribe' | 'plan';
 
+/** The provider failed, timed out or is unreachable. Counts toward the circuit breaker. */
 export class AddisAIError extends Error {
   constructor(
-    readonly stage: 'transcribe' | 'plan',
+    readonly stage: AddisStage,
     readonly status: number,
+    readonly timedOut = false,
   ) {
     super(`addis_ai_${stage}_failed`);
     this.name = 'AddisAIError';
   }
+
+  get countsAsOutage(): boolean {
+    return this.timedOut || this.status === 0 || this.status === 429 || this.status >= 500;
+  }
 }
 
-const BASE_URL = process.env.ADDIS_AI_BASE_URL ?? 'https://api.addisassistant.com';
-const TRANSCRIBE_TIMEOUT_MS = 8_000;
-const PLAN_TIMEOUT_MS = 6_000;
+/** The provider answered, but not in a shape this adapter understands. Not an outage. */
+export class AddisAISchemaError extends Error {
+  constructor(
+    readonly stage: AddisStage,
+    readonly mismatches: string[],
+  ) {
+    super(`addis_ai_${stage}_schema_mismatch`);
+    this.name = 'AddisAISchemaError';
+  }
+}
+
+export type AddisClientOptions = {
+  apiKey: string;
+  baseUrl: string;
+  transcribeTimeoutMs: number;
+  planTimeoutMs: number;
+  breaker: CircuitBreaker;
+  sttVocabularyField?: string;
+};
+
 const SAMPLE_RATE = 16_000;
 
 const PLAN_INSTRUCTION = [
@@ -32,30 +62,51 @@ const PLAN_INSTRUCTION = [
   'If the command cannot be carried out on this screen, reply {"steps":[]}.',
 ].join('\n');
 
-export class AddisAIAdapter {
-  private readonly apiKey: string;
+export interface TranscriptionPort {
+  transcribeAudio(audio: Buffer, language: string, vocabulary?: string[]): Promise<NormalizedTranscription>;
+}
 
-  constructor(apiKey: string = process.env.ADDIS_AI_API_KEY ?? '') {
-    this.apiKey = apiKey;
+export interface PlanningPort {
+  planActionSequence(transcript: string, screenContext: ScreenContext): Promise<unknown>;
+}
+
+export class AddisAIAdapter implements TranscriptionPort, PlanningPort {
+  constructor(private readonly options: AddisClientOptions) {}
+
+  get breaker(): CircuitBreaker {
+    return this.options.breaker;
   }
 
-  async transcribeAudio(audioBuffer: Buffer, language: string): Promise<AddisSTTResponse> {
+  async transcribeAudio(audioBuffer: Buffer, language: string, vocabulary: string[] = []): Promise<NormalizedTranscription> {
     const form = new FormData();
     form.append('audio', new Blob([toWav(audioBuffer)], { type: 'audio/wav' }), 'command.wav');
-    form.append('request_data', JSON.stringify({ language_code: language.startsWith('en') ? 'en' : 'am' }));
+    const requestData: Record<string, unknown> = { language_code: language.startsWith('en') ? 'en' : 'am' };
+    // The vendor's vocabulary-bias parameter is not documented in this repository. Terms are
+    // sent only when an operator configures the field name after confirming it with the vendor.
+    if (this.options.sttVocabularyField && vocabulary.length > 0) {
+      requestData[this.options.sttVocabularyField] = vocabulary;
+    }
+    form.append('request_data', JSON.stringify(requestData));
 
-    const response = await this.send('/api/v2/stt', { method: 'POST', body: form }, TRANSCRIBE_TIMEOUT_MS, 'transcribe');
-    const payload = (await response.json()) as {
-      data?: { transcription?: string };
-      confidence?: number;
-    };
-
-    return {
-      text: payload.data?.transcription ?? '',
-      confidence: typeof payload.confidence === 'number' ? payload.confidence : 0,
-    };
+    const payload = await this.send('/api/v2/stt', { method: 'POST', body: form }, this.options.transcribeTimeoutMs, 'transcribe');
+    const result: ParseResult<NormalizedTranscription> = AddisAIResponseAdapter.parseTranscription(payload);
+    if (!result.ok) {
+      logStructured('addis.schema_mismatch', { stage: 'transcribe', fields: result.mismatches });
+      throw new AddisAISchemaError('transcribe', result.mismatches);
+    }
+    if (result.value.metadata.mismatches.length > 0) {
+      logStructured('addis.schema_mismatch', { stage: 'transcribe', fields: result.value.metadata.mismatches, fatal: false });
+    }
+    if (result.value.confidence.kind === 'unavailable') {
+      logStructured('addis.confidence_unavailable', { shape: result.value.metadata.shape });
+    }
+    return result.value;
   }
 
+  /**
+   * Returns the planner's plan, with server-assigned ids, or null when the planner's reply cannot
+   * be read. The caller validates the result against the ActionPlan contract before using it.
+   */
   async planActionSequence(transcript: string, screenContext: ScreenContext): Promise<unknown> {
     const prompt = [
       `Foreground app: ${screenContext.current_package}`,
@@ -65,7 +116,7 @@ export class AddisAIAdapter {
       `Command: ${transcript}`,
     ].join('\n');
 
-    const response = await this.send(
+    const payload = await this.send(
       '/api/v1/chat_generate',
       {
         method: 'POST',
@@ -76,60 +127,87 @@ export class AddisAIAdapter {
           generation_config: { temperature: 0.1, maxOutputTokens: 1024 },
         }),
       },
-      PLAN_TIMEOUT_MS,
+      this.options.planTimeoutMs,
       'plan',
     );
 
-    const payload = (await response.json()) as { response_text?: string };
-    const parsed = parseJsonObject(payload.response_text ?? '');
-    if (!parsed) return null;
-
+    const result = AddisAIResponseAdapter.parsePlan(payload);
+    if (!result.ok) {
+      logStructured('addis.schema_mismatch', { stage: 'plan', fields: result.mismatches });
+      return null;
+    }
+    const parsed = result.value.raw;
     return {
       ...parsed,
-      plan_id: crypto.randomUUID(),
+      plan_id: randomUUID(),
       package_name: parsed.package_name ?? screenContext.current_package,
-      steps: Array.isArray(parsed.steps)
-        ? parsed.steps.map((step: Record<string, unknown>) => ({ ...step, step_id: crypto.randomUUID() }))
-        : [],
+      steps: Array.isArray(parsed.steps) ? parsed.steps.map(normalizeStep) : parsed.steps,
     };
   }
 
-  private async send(
-    path: string,
-    init: RequestInit,
-    timeoutMs: number,
-    stage: 'transcribe' | 'plan',
-  ): Promise<Response> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(`${BASE_URL}${path}`, {
-        ...init,
-        signal: controller.signal,
-        headers: { ...(init.headers ?? {}), 'x-api-key': this.apiKey },
-      });
-      if (!response.ok) throw new AddisAIError(stage, response.status);
-      return response;
-    } catch (error) {
-      if (error instanceof AddisAIError) throw error;
-      throw new AddisAIError(stage, 0);
-    } finally {
-      clearTimeout(timer);
-    }
+  private async send(path: string, init: RequestInit, timeoutMs: number, stage: AddisStage): Promise<unknown> {
+    return this.options.breaker.execute(
+      async () => {
+        const controller = new AbortController();
+        let timedOut = false;
+        const timer = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs);
+        const started = Date.now();
+        const scope = currentScope();
+        const headers: Record<string, string> = { ...((init.headers as Record<string, string>) ?? {}), 'x-api-key': this.options.apiKey };
+        if (scope) {
+          // Correlation only: a random id and a W3C traceparent, never user data.
+          headers['x-request-id'] = scope.requestId;
+          headers.traceparent = `00-${scope.traceId}-${randomBytes(8).toString('hex')}-01`;
+        }
+        try {
+          const response = await fetch(`${this.options.baseUrl}${path}`, { ...init, signal: controller.signal, headers });
+          logStructured('addis.call', { stage, status: response.status, duration_ms: Date.now() - started });
+          if (!response.ok) throw new AddisAIError(stage, response.status);
+          try {
+            return (await response.json()) as unknown;
+          } catch {
+            throw new AddisAISchemaError(stage, ['$:json']);
+          }
+        } catch (error) {
+          if (error instanceof AddisAIError || error instanceof AddisAISchemaError) throw error;
+          logStructured('addis.call', { stage, status: 0, timed_out: timedOut, duration_ms: Date.now() - started, ...describeError(error) });
+          throw new AddisAIError(stage, 0, timedOut);
+        } finally {
+          clearTimeout(timer);
+        }
+      },
+      (error) => error instanceof AddisAIError && error.countsAsOutage,
+    );
   }
 }
 
-function parseJsonObject(text: string): Record<string, unknown> | null {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    const value: unknown = JSON.parse(text.slice(start, end + 1));
-    return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
-  } catch {
-    return null;
+/**
+ * The planner is instructed to write `null` for an absent target or payload, while the ActionStep
+ * contract models them as optional strings. Absent is absent: nulls are dropped here, so a plan
+ * that follows the instruction is not rejected for it. Every other field is left for the contract
+ * to judge.
+ */
+function normalizeStep(step: unknown): unknown {
+  if (typeof step !== 'object' || step === null || Array.isArray(step)) return step;
+  const normalized: Record<string, unknown> = { ...step, step_id: randomUUID() };
+  for (const key of ['target_node_id', 'payload']) {
+    if (normalized[key] === null) delete normalized[key];
   }
+  return normalized;
 }
+
+export function createAddisBreaker(failureThreshold: number, resetMs: number): CircuitBreaker {
+  return new CircuitBreaker({
+    failureThreshold,
+    resetMs,
+    onStateChange: (from, to) => logStructured('addis.breaker', { from, to }),
+  });
+}
+
+export { CircuitOpenError };
 
 function toWav(pcm: Buffer): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(new ArrayBuffer(44 + pcm.length));

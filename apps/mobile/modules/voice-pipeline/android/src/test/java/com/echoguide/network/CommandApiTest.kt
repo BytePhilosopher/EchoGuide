@@ -35,6 +35,7 @@ class CommandApiTest {
     screen = ScreenContext("com.app", "[id: com.app:id/ok]"),
     installId = "install-1",
     requestId = "11111111-1111-4111-8111-111111111111",
+    sessionToken = "egs_test",
   )
 
   private fun accepted() = MockResponse().setResponseCode(200).setBody(
@@ -119,5 +120,25 @@ class CommandApiTest {
     assertTrue(body.contains("audio_base64"))
     assertTrue(body.contains("com.app:id/ok"))
     assertTrue(body.contains("\"duration_ms\":900"))
+  }
+
+  @Test
+  fun `the request carries the session token next to the install id`() {
+    server.enqueue(accepted())
+    submit()
+    assertEquals("Bearer egs_test", server.takeRequest().getHeader("Authorization"))
+  }
+
+  @Test
+  fun `a rejected session is reported as unauthorized, not retried, and does not trip the breaker`() {
+    repeat(6) { server.enqueue(MockResponse().setResponseCode(401)) }
+
+    val target = api()
+    val result = submit(target) as CommandResult.Failed
+
+    assertTrue(result.unauthorized)
+    assertEquals(1, server.requestCount)
+    repeat(5) { submit(target) }
+    assertEquals(6, server.requestCount)
   }
 }

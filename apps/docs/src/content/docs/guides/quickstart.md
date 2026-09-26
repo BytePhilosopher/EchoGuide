@@ -22,10 +22,21 @@ native Kotlin layer — and the accessibility executor lives there, so in practi
 
 ```bash
 npm install
-docker-compose up -d
+docker compose up -d
 npm run build --workspace=@echoguide/openapi
 cp apps/api/.env.example apps/api/.env
-npm run db:migrate --workspace=@echoguide/api
+# set AUTH_TOKEN_SECRET in apps/api/.env:  openssl rand -hex 32
+npm run db:migrate:dev --workspace=@echoguide/api
+```
+
+The API refuses to start if a required variable is missing, and says which one. For the
+production sequence (build, `db:migrate`, `start`), see `docs/runbooks/production-operations.md`.
+
+To run the API tests, start the disposable test databases first (separate ports, data in memory):
+
+```bash
+npm run test:infra:up --workspace=@echoguide/api
+npm run test --workspace=@echoguide/api
 ```
 
 Build the OpenAPI package before either app starts. Both the API and the mobile client

@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
-import { getDb } from '../../shared/database/client';
-import { consentGrants, users } from '../../shared/database/schema';
+import type { Database } from '../../shared/database/client';
+import { consentGrants } from '../../shared/database/schema';
 
 export type ConsentGrantRow = {
   id: string;
@@ -10,35 +10,21 @@ export type ConsentGrantRow = {
   createdAt: Date;
 };
 
-export async function insertGrant(
-  userId: string,
-  scope: string,
-  granted: boolean,
-): Promise<ConsentGrantRow | null> {
-  const db = getDb();
-  if (!db) return null;
-  const rows = await db
-    .insert(consentGrants)
-    .values({ userId, scope, granted })
-    .returning();
-  return rows[0] ?? null;
-}
+export class ConsentRepository {
+  constructor(private readonly db: Database) {}
 
-export async function findLatestGrant(userId: string, scope: string): Promise<ConsentGrantRow | null> {
-  const db = getDb();
-  if (!db) return null;
-  const rows = await db
-    .select()
-    .from(consentGrants)
-    .where(and(eq(consentGrants.userId, userId), eq(consentGrants.scope, scope)))
-    .orderBy(desc(consentGrants.createdAt))
-    .limit(1);
-  return rows[0] ?? null;
-}
+  async insertGrant(userId: string, scope: string, granted: boolean): Promise<ConsentGrantRow> {
+    const [row] = await this.db.insert(consentGrants).values({ userId, scope, granted }).returning();
+    return row;
+  }
 
-export async function deleteUserCascade(userId: string): Promise<boolean> {
-  const db = getDb();
-  if (!db) return false;
-  const rows = await db.delete(users).where(eq(users.id, userId)).returning({ id: users.id });
-  return rows.length > 0;
+  async findLatestGrant(userId: string, scope: string): Promise<ConsentGrantRow | null> {
+    const rows = await this.db
+      .select()
+      .from(consentGrants)
+      .where(and(eq(consentGrants.userId, userId), eq(consentGrants.scope, scope)))
+      .orderBy(desc(consentGrants.createdAt))
+      .limit(1);
+    return rows[0] ?? null;
+  }
 }

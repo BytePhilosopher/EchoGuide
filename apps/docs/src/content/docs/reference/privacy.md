@@ -28,7 +28,8 @@ already kept — request deletion for that.
 
 Some data is structural and cannot be switched off without breaking the product:
 
-- **Install identity** — an `X-Install-ID` header identifying the installation, not you
+- **Install identity** — an `X-Install-ID` header identifying the installation, not you, sent
+  with a session token that only the server can issue and only a hash of which is stored
 - **Idempotency keys** — so a retried command does not execute twice
 - **Trace identifiers** — propagated across services so one command can be followed end to end
 - **Telemetry** — latency and success counters, not content

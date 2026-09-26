@@ -5,3 +5,4 @@ openapi.yaml:
     - '#/servers/1/url'
   operation-4xx-response:
     - '#/paths/~1health/get/responses'
+    - '#/paths/~1ready/get/responses'

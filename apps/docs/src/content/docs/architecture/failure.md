@@ -17,8 +17,8 @@ indistinguishable from a crash.
 | Low confidence | `avg_logprob` under −1.0 | Reprompt, maximum 2 | "I think you said X — is that right?" |
 | Not speech | `no_speech_prob` over 0.6 | Silent reset | Nothing, deliberately |
 | Repetition loop | `compression_ratio` over 2.4 | Reject | "Could you say that again?" |
-| Postgres down | Connection error | Commands still execute; events buffered | Nothing — user path unaffected |
-| Redis down | Connection error | No rate limiting, no queue | Nothing; alert fires |
+| Postgres down | Connection error | Sessions cannot be verified, so commands answer 503; telemetry stays buffered in Redis | "I can't reach the network right now" |
+| Redis down | Connection error | No rate limiting, no idempotency de-duplication, telemetry dropped; deletion jobs still run from Postgres | Nothing; alert fires |
 | Upstream rate limit | HTTP 429 | Back off, retry once | Speak only if the retry also fails |
 | JavaScript context crashes | React Native error boundary | Pipeline unaffected; UI restarts | Nothing |
 

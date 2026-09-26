@@ -141,6 +141,16 @@ The schema is defined with Drizzle in `apps/api/src/shared/database/schema.ts`. 
   repeatedly. The first migration creates the current month and the next two, plus a default
   partition that catches rows if a month is ever missing.
 
-Deleting a user cascades through every table in the database. The object-storage job is not built
-yet, because audio retention does not exist yet.
+Deletion is a durable job in `deletion_jobs` (Postgres is authoritative; Redis only wakes the
+worker). The request sets `users.deleted_at`, which stops every credential at once. The worker clears
+the user's storage prefix through `StorageService`, then deletes the user row, which cascades
+through every table, and only then marks the job `completed`. Failures retry with backoff; after
+`DELETION_JOB_MAX_ATTEMPTS` the job is `failed` and an alert is logged. Clients poll
+`GET /v1/consent/user-data/jobs/{taskId}`. Audio retention is not built, so the default storage
+driver (`none`) refuses writes and deletion truthfully removes zero objects.
+
+Other tables added for production: `admin_users`, `admin_permissions`, `admin_sessions`,
+`audit_logs` (append-only; `target_user_id` deliberately has no foreign key so the record outlives
+the user), `vocabulary_terms`, and `users.status` / `users.suspended_at`. `users.phone_hash` is now
+nullable: only a verified number may link installs, and no verification exists yet.
 :::
