@@ -12,6 +12,7 @@ class CommandStateMachine(private val maxReprompts: Int = 2) {
 
   sealed interface Event {
     data object WakeWord : Event
+    data object GrantRequired : Event
     data object BufferTooShort : Event
     data class BufferClosed(val durationMs: Int) : Event
     data class ServerReplied(val status: CommandStatus, val speakCode: SpeakCode, val plan: ActionPlan?) : Event
@@ -41,6 +42,8 @@ class CommandStateMachine(private val maxReprompts: Int = 2) {
 
   fun on(event: Event): Transition = when (event) {
     is Event.WakeWord -> move(State.CAPTURING, speak = null)
+
+    is Event.GrantRequired -> move(State.CONFIRMING, speak = null)
 
     is Event.BufferTooShort -> terminal(State.DISCARDED, speak = null)
 

@@ -138,4 +138,22 @@ class PlanValidatorTest {
     )
     assertEquals(PlanValidator.Verdict.Valid, PlanValidator.validate(plan(steps = steps), bank, live))
   }
+
+  @Test
+  fun `open app needs a name and must be the last step`() {
+    val open = { name: String? -> ActionStep("s2", ActionType.OPEN_APP, null, name, false) }
+
+    assertEquals(
+      PlanValidator.Verdict.Valid,
+      PlanValidator.validate(plan(steps = listOf(open("Telegram"))), bank, live),
+    )
+    assertEquals(
+      PlanValidator.Verdict.Blocked(PlanValidator.Reason.MISSING_APP_NAME),
+      PlanValidator.validate(plan(steps = listOf(open(" "))), bank, live),
+    )
+    assertEquals(
+      PlanValidator.Verdict.Blocked(PlanValidator.Reason.OPEN_APP_NOT_LAST),
+      PlanValidator.validate(plan(steps = listOf(open("Telegram"), tap("com.bank.app:id/send"))), bank, live),
+    )
+  }
 }

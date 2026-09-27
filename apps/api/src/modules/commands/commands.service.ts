@@ -123,6 +123,15 @@ export class CommandPipeline {
         );
       }
       const plan = parsed.data;
+      // An app opened mid-plan leaves the remaining steps pointing at a screen nobody described.
+      const openAppIndex = plan.steps.findIndex((step) => step.action_type === 'OPEN_APP');
+      if (openAppIndex !== -1 && (openAppIndex !== plan.steps.length - 1 || !plan.steps[openAppIndex].payload?.trim())) {
+        return finish(
+          'blocked',
+          reply({ status: 'REJECTED', reprompt_reason: 'Plan failed schema validation', speak_code: 'ERR_REJECTED' }),
+          verdict.confidence,
+        );
+      }
       if (plan.steps.length === 0) {
         return finish(
           'blocked',

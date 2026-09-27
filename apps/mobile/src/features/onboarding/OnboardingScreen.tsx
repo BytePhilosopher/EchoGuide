@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
 import {
@@ -17,6 +17,7 @@ import {
 } from '../../native/VoicePipelineBridge';
 import { useAppState } from '../../state/AppStateContext';
 import { t } from '../../i18n/strings';
+import { AccessibilitySetupGuide } from '../accessibility/AccessibilitySetupGuide';
 
 interface OnboardingScreenProps {
   onComplete?: () => void;
@@ -34,8 +35,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [service, setService] = useState<ServiceState | null>(null);
 
+  // Re-read on return from Android settings, so the step flips to done without a restart.
   useEffect(() => {
-    VoicePipelineBridge.getServiceState().then(setService);
+    const refresh = () => VoicePipelineBridge.getServiceState().then(setService);
+    refresh();
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') refresh();
+    });
+    return () => subscription.remove();
   }, []);
 
   const handleLanguage = async (next: LanguageCode) => {
@@ -49,9 +56,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       return;
     }
     setIsSubmitting(true);
+    await VoicePipelineBridge.requestMicrophone();
     await VoicePipelineBridge.setLanguage(lang);
-    await VoicePipelineBridge.setConsent(true);
     await VoicePipelineBridge.registerDevice();
+    await VoicePipelineBridge.setConsent(true);
+    await VoicePipelineBridge.prepareWakeWord();
     dispatch({ type: 'SET_LANGUAGE', language: lang });
     dispatch({ type: 'SET_CONSENT', granted: true });
     setIsSubmitting(false);
@@ -117,9 +126,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             label={accessibilityOn ? t('serviceActive', lang) : t('serviceSetupNeeded', lang)}
           />
         </View>
-        <Text style={styles.hint}>
-          {accessibilityOn ? t('serviceConnected', lang) : t('serviceWillPrompt', lang)}
-        </Text>
+        {accessibilityOn ? (
+          <Text style={styles.hint}>{t('serviceConnected', lang)}</Text>
+        ) : (
+          <View style={styles.guide}>
+            <AccessibilitySetupGuide language={lang} />
+          </View>
+        )}
       </Card>
 
       <PrimaryButton
@@ -154,5 +167,6 @@ const styles = StyleSheet.create({
   body: { ...Theme.type.body, color: Theme.colors.base },
   statusRow: { marginTop: Theme.spacing.md },
   hint: { ...Theme.type.caption, color: Theme.colors.muted, marginTop: Theme.spacing.sm },
+  guide: { marginTop: Theme.spacing.lg },
   finish: { marginTop: Theme.spacing.xl },
 });

@@ -10,15 +10,37 @@ android {
     versionCode 1
     versionName '1.0.0'
     buildConfigField 'String', 'API_BASE_URL', "\"${project.findProperty('echoguide.apiBaseUrl') ?: 'http://10.0.2.2:4000'}\""
-    buildConfigField 'String', 'VOSK_MODEL_URL', "\"${project.findProperty('echoguide.voskModelUrl') ?: 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip'}\""
   }
   buildFeatures {
     buildConfig true
+  }
+  // The wake word model ships inside the app: a 41 MB download after install takes too long on
+  // slow networks and restarts from zero if interrupted.
+  sourceSets {
+    main.assets.srcDirs += layout.buildDirectory.dir('generated/vosk/assets')
   }
   testOptions {
     unitTests.returnDefaultValues = true
   }
 }
+
+def voskModelUrl = project.findProperty('echoguide.voskModelUrl') ?: 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip'
+def voskModelZip = layout.buildDirectory.file('generated/vosk/assets/vosk-model.zip')
+
+def downloadVoskModel = tasks.register('downloadVoskModel') {
+  inputs.property('url', voskModelUrl)
+  outputs.file(voskModelZip)
+  onlyIf { !voskModelZip.get().asFile.exists() }
+  doLast {
+    def target = voskModelZip.get().asFile
+    def partial = new File(target.path + '.partial')
+    target.parentFile.mkdirs()
+    new URL(voskModelUrl).withInputStream { input -> partial.withOutputStream { it << input } }
+    if (!partial.renameTo(target)) throw new GradleException("Could not store the wake word model at $target")
+  }
+}
+
+preBuild.dependsOn(downloadVoskModel)
 
 dependencies {
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'

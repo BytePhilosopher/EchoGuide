@@ -30,5 +30,9 @@
   "ERR_BILLING": {
     "en-US": "Your plan cannot run this command right now",
     "am-ET": "እቅድዎ ይህን ትእዛዝ አሁን ማስኬድ አይችልም"
+  },
+  "GRANT_APP": {
+    "en-US": "Allow voice control in this app?",
+    "am-ET": "በዚህ መተግበሪያ ውስጥ የድምጽ ቁጥጥር ይፈቀድ?"
   }
 }

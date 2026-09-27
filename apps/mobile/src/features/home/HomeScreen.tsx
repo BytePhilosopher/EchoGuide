@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Mic, MicOff, ShieldAlert, Volume2 } from 'lucide-react-native';
 import { Theme } from '../../design/theme';
@@ -7,7 +7,37 @@ import { Card, PrimaryButton, SectionHeader } from '../../design/SharedComponent
 import { useAppState } from '../../state/AppStateContext';
 import { VoicePipelineBridge } from '../../native/VoicePipelineBridge';
 import { usePipelineState } from '../../native/usePipelineState';
-import { t } from '../../i18n/strings';
+import { t, type Locale, type StringKey } from '../../i18n/strings';
+import { AccessibilitySetupGuide } from '../accessibility/AccessibilitySetupGuide';
+
+const EXAMPLES: { say: StringKey; tip: StringKey }[] = [
+  { say: 'exampleOpenApp', tip: 'tipOpenApp' },
+  { say: 'exampleTap', tip: 'tipTap' },
+  { say: 'exampleScroll', tip: 'tipScroll' },
+];
+
+const ModelSetupCard: React.FC<{ progress: number; language: Locale }> = ({ progress, language }) => {
+  const percent = Math.round(progress * 100);
+  return (
+    <Card style={styles.setupCard}>
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={`${t('modelSetupTitle', language)}. ${t('modelSetupBody', language)}`}
+        accessibilityValue={{ min: 0, max: 100, now: percent }}
+      >
+        <View style={styles.progressHeader}>
+          <Text style={styles.setupTitle}>{t('modelSetupTitle', language)}</Text>
+          <Text style={styles.progressPercent}>{percent}%</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${percent}%` }]} />
+        </View>
+        <Text style={[styles.setupBody, styles.progressBody]}>{t('modelSetupBody', language)}</Text>
+      </View>
+    </Card>
+  );
+};
 
 export const HomeScreen: React.FC = () => {
   const { state } = useAppState();
@@ -27,12 +57,16 @@ export const HomeScreen: React.FC = () => {
       ? t('engineListening', language)
       : t('enginePaused', language);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     Haptics.impactAsync(
       isListening ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium,
     ).catch(() => undefined);
-    if (isListening) VoicePipelineBridge.stopListening();
-    else if (pipeline.wakeWordAvailable) VoicePipelineBridge.startListening();
+    if (isListening) {
+      VoicePipelineBridge.stopListening();
+      return;
+    }
+    if (!(await VoicePipelineBridge.requestMicrophone())) return;
+    if (pipeline.wakeWordAvailable) VoicePipelineBridge.startListening();
     else VoicePipelineBridge.triggerListening();
   };
 
@@ -92,18 +126,36 @@ export const HomeScreen: React.FC = () => {
         </Text>
       </View>
 
+      {pipeline.modelProgress !== null ? (
+        <ModelSetupCard progress={pipeline.modelProgress} language={language} />
+      ) : null}
+
+      {pipeline.available && !pipeline.microphoneGranted ? (
+        <Card style={styles.setupCard}>
+          <View style={styles.setupRow}>
+            <MicOff size={20} color={Theme.colors.accent} strokeWidth={1.75} />
+            <View style={styles.setupCopy}>
+              <Text style={styles.setupTitle}>{t('micTitle', language)}</Text>
+              <Text style={styles.setupBody}>{t('micBody', language)}</Text>
+            </View>
+          </View>
+          <PrimaryButton
+            title={t('openAppSettings', language)}
+            onPress={() => Linking.openSettings()}
+            style={styles.setupButton}
+          />
+        </Card>
+      ) : null}
+
       {needsSetup ? (
         <Card style={styles.setupCard}>
           <View style={styles.setupRow}>
             <ShieldAlert size={20} color={Theme.colors.accent} strokeWidth={1.75} />
             <Text style={styles.setupText}>{t('enableInSettings', language)}</Text>
           </View>
-          <PrimaryButton
-            title={t('openAccessibility', language)}
-            onPress={() => VoicePipelineBridge.openAccessibilitySettings()}
-            accessibilityHint={t('openAccessibilityHint', language)}
-            style={styles.setupButton}
-          />
+          <View style={styles.guide}>
+            <AccessibilitySetupGuide language={language} />
+          </View>
         </Card>
       ) : null}
 
@@ -150,11 +202,13 @@ export const HomeScreen: React.FC = () => {
 
       <SectionHeader title={t('sectionTryThese', language)} />
       <Card>
-        <Text style={styles.example}>“{state.wakeWord}, መልእክት ላክ”</Text>
-        <Text style={styles.exampleHint}>{t('tipSendMessage', language)}</Text>
-        <View style={styles.exampleGap} />
-        <Text style={styles.example}>“{state.wakeWord}, open settings”</Text>
-        <Text style={styles.exampleHint}>{t('tipOpenSettings', language)}</Text>
+        <Text style={styles.howTo}>{t('howToUse', language)}</Text>
+        {EXAMPLES.map(({ say, tip }) => (
+          <View key={say} style={styles.exampleItem}>
+            <Text style={styles.example}>“{state.wakeWord}, {t(say, language)}”</Text>
+            <Text style={styles.exampleHint}>{t(tip, language)}</Text>
+          </View>
+        ))}
       </Card>
     </ScrollView>
   );
@@ -241,6 +295,9 @@ const styles = StyleSheet.create({
     color: Theme.colors.strong,
     marginBottom: 2,
   },
+  guide: {
+    marginTop: Theme.spacing.lg,
+  },
   setupButton: {
     marginTop: Theme.spacing.md,
   },
@@ -274,7 +331,35 @@ const styles = StyleSheet.create({
     color: Theme.colors.muted,
     marginTop: 2,
   },
-  exampleGap: {
-    height: Theme.spacing.md,
+  howTo: {
+    ...Theme.type.body,
+    color: Theme.colors.base,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  progressPercent: {
+    ...Theme.type.label,
+    color: Theme.colors.accent,
+    fontVariant: ['tabular-nums'],
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: Theme.radius.pill,
+    backgroundColor: Theme.colors.line,
+    overflow: 'hidden',
+    marginTop: Theme.spacing.md,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Theme.colors.accent,
+  },
+  progressBody: {
+    marginTop: Theme.spacing.sm,
+  },
+  exampleItem: {
+    marginTop: Theme.spacing.md,
   },
 });

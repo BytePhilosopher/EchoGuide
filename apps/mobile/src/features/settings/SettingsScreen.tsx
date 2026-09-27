@@ -19,6 +19,7 @@ export const SettingsScreen: React.FC = () => {
   const [wakeWordActive, setWakeWordActive] = useState(false);
   const [wakeWord, setWakeWord] = useState('echo');
   const [isRevoking, setIsRevoking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const lang = state.selectedLanguage;
 
   useEffect(() => {
@@ -41,9 +42,35 @@ export const SettingsScreen: React.FC = () => {
         style: 'destructive',
         onPress: async () => {
           setIsRevoking(true);
-          await VoicePipelineBridge.revokeConsent();
+          const isRecorded = await VoicePipelineBridge.revokeConsent();
           dispatch({ type: 'SET_CONSENT', granted: false });
           setIsRevoking(false);
+          if (!isRecorded) Alert.alert(t('notSyncedTitle', lang), t('revokeNotSynced', lang));
+        },
+      },
+    ]);
+  };
+
+  const handleRetentionChange = async (optIn: boolean) => {
+    dispatch({ type: 'SET_DATA_RETENTION', optIn });
+    const isRecorded = await VoicePipelineBridge.setAudioRetention(optIn);
+    if (isRecorded) return;
+    dispatch({ type: 'SET_DATA_RETENTION', optIn: !optIn });
+    Alert.alert(t('notSyncedTitle', lang), t('retentionNotSaved', lang));
+  };
+
+  const handleDeleteData = () => {
+    Alert.alert(t('deleteDataTitle', lang), t('deleteDataBody', lang), [
+      { text: t('cancel', lang), style: 'cancel' },
+      {
+        text: t('deleteData', lang),
+        style: 'destructive',
+        onPress: async () => {
+          setIsDeleting(true);
+          const isDeleted = await VoicePipelineBridge.deleteUserData();
+          setIsDeleting(false);
+          if (isDeleted) dispatch({ type: 'DELETE_ALL_DATA' });
+          else Alert.alert(t('notSyncedTitle', lang), t('deleteDataFailed', lang));
         },
       },
     ]);
@@ -92,10 +119,15 @@ export const SettingsScreen: React.FC = () => {
           label={t('wakeWordLabel', lang)}
           description={t('wakeWordSub', lang)}
           value={wakeWordActive}
-          onValueChange={(next) => {
-            setWakeWordActive(next);
-            if (next) VoicePipelineBridge.startListening();
-            else VoicePipelineBridge.stopListening();
+          onValueChange={async (next) => {
+            if (!next) {
+              setWakeWordActive(false);
+              VoicePipelineBridge.stopListening();
+              return;
+            }
+            const isAllowed = await VoicePipelineBridge.requestMicrophone();
+            setWakeWordActive(isAllowed && VoicePipelineBridge.startListening());
+            if (!isAllowed) Alert.alert(t('micTitle', lang), t('micBody', lang));
           }}
         />
         <Divider spacing={Theme.spacing.xs} />
@@ -103,7 +135,7 @@ export const SettingsScreen: React.FC = () => {
           label={t('retentionLabel', lang)}
           description={t('retentionSub', lang)}
           value={state.dataRetentionOptIn}
-          onValueChange={(next) => dispatch({ type: 'SET_DATA_RETENTION', optIn: next })}
+          onValueChange={handleRetentionChange}
         />
       </Card>
 
@@ -142,6 +174,16 @@ export const SettingsScreen: React.FC = () => {
           onPress={handleRevokeConsent}
           variant="danger"
           loading={isRevoking}
+          style={styles.revokeButton}
+        />
+        <Divider spacing={Theme.spacing.md} />
+        <Text style={styles.privacyTitle}>{t('deleteData', lang)}</Text>
+        <Text style={styles.privacyBody}>{t('deleteDataSub', lang)}</Text>
+        <PrimaryButton
+          title={t('deleteData', lang)}
+          onPress={handleDeleteData}
+          variant="danger"
+          loading={isDeleting}
           style={styles.revokeButton}
         />
       </Card>

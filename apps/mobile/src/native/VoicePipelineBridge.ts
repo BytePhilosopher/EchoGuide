@@ -1,7 +1,9 @@
+import { PermissionsAndroid, Platform } from 'react-native';
 import {
   VoicePipelineNativeModule,
   type CommandOutcomeCode,
   type CommandOutcomeEvent,
+  type Entitlement,
   type LanguageCode,
   type PermissionStatus,
   type PipelineState,
@@ -12,6 +14,7 @@ import {
 export type {
   CommandOutcomeCode,
   CommandOutcomeEvent,
+  Entitlement,
   LanguageCode,
   PermissionStatus,
   PipelineState,
@@ -20,9 +23,11 @@ export type {
 };
 
 const CALL_TIMEOUT_MS = 3000;
+// Calls that wait on the server: registration plus the request, each with its own native timeout.
+const NETWORK_TIMEOUT_MS = 30000;
 
-function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
-  const timeout = new Promise<T>((resolve) => setTimeout(() => resolve(fallback), CALL_TIMEOUT_MS));
+function withTimeout<T>(work: Promise<T>, fallback: T, timeoutMs = CALL_TIMEOUT_MS): Promise<T> {
+  const timeout = new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs));
   return Promise.race([work, timeout]).catch(() => fallback);
 }
 
@@ -35,6 +40,7 @@ const UNAVAILABLE: ServiceState = {
   wakeWord: 'echo',
   installId: '',
   currentLanguage: 'am-ET',
+  modelProgress: null,
 };
 
 const DENIED: PermissionStatus = {
@@ -46,8 +52,17 @@ const DENIED: PermissionStatus = {
 class VoicePipelineBridgeManager {
   readonly isNativeAvailable = VoicePipelineNativeModule != null;
 
-  startListening(): void {
-    VoicePipelineNativeModule?.startListening();
+  startListening(): boolean {
+    return VoicePipelineNativeModule?.startListening() ?? false;
+  }
+
+  /** Asks for the microphone (and, on Android 13+, the listening notification). True if the mic is granted. */
+  async requestMicrophone(): Promise<boolean> {
+    if (Platform.OS !== 'android') return false;
+    const wanted = [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
+    if (Platform.Version >= 33) wanted.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    const results = await PermissionsAndroid.requestMultiple(wanted);
+    return results[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
   }
 
   stopListening(): void {
@@ -65,7 +80,7 @@ class VoicePipelineBridgeManager {
 
   async setConsent(granted: boolean): Promise<boolean> {
     if (!VoicePipelineNativeModule) return false;
-    return withTimeout(VoicePipelineNativeModule.setConsent(granted), false);
+    return withTimeout(VoicePipelineNativeModule.setConsent(granted), false, NETWORK_TIMEOUT_MS);
   }
 
   async setWakeWord(phrase: string): Promise<string> {
@@ -98,9 +113,24 @@ class VoicePipelineBridgeManager {
     return withTimeout(VoicePipelineNativeModule.setLanguage(languageCode), false);
   }
 
-  async revokeConsent(): Promise<void> {
-    if (!VoicePipelineNativeModule) return;
-    await withTimeout(VoicePipelineNativeModule.revokeConsent(), undefined);
+  async revokeConsent(): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.revokeConsent(), false, NETWORK_TIMEOUT_MS);
+  }
+
+  async setAudioRetention(optIn: boolean): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.setAudioRetention(optIn), false, NETWORK_TIMEOUT_MS);
+  }
+
+  async getEntitlement(): Promise<Entitlement | null> {
+    if (!VoicePipelineNativeModule) return null;
+    return withTimeout(VoicePipelineNativeModule.getEntitlement(), null, NETWORK_TIMEOUT_MS);
+  }
+
+  async deleteUserData(): Promise<boolean> {
+    if (!VoicePipelineNativeModule) return false;
+    return withTimeout(VoicePipelineNativeModule.deleteUserData(), false, NETWORK_TIMEOUT_MS);
   }
 
   async getServiceState(): Promise<ServiceState> {

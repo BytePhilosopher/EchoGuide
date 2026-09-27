@@ -40,8 +40,12 @@ class VoicePipelineModule : Module() {
       }
     }
 
+    // A microphone foreground service started without the permission throws on Android 14.
     Function("startListening") {
-      appContext.reactContext?.let { VoicePipelineForegroundService.start(it) }
+      val context = appContext.reactContext ?: return@Function false
+      if (!granted(context, Manifest.permission.RECORD_AUDIO)) return@Function false
+      VoicePipelineForegroundService.start(context)
+      true
     }
 
     Function("stopListening") {
@@ -103,14 +107,36 @@ class VoicePipelineModule : Module() {
     }
 
     AsyncFunction("setConsent") { granted: Boolean ->
-      pipeline()?.setConsent(granted)
-      granted
+      pipeline()?.setConsent(granted) ?: false
     }
 
     AsyncFunction("revokeConsent") {
-      pipeline()?.setConsent(false)
+      val isRecorded = pipeline()?.setConsent(false) ?: false
       pipeline()?.stopPipeline()
       appContext.reactContext?.let { VoicePipelineForegroundService.stop(it) }
+      isRecorded
+    }
+
+    AsyncFunction("setAudioRetention") { optIn: Boolean ->
+      pipeline()?.recordConsent(VoicePipelineService.AUDIO_RETENTION_SCOPE, optIn) ?: false
+    }
+
+    AsyncFunction("getEntitlement") {
+      pipeline()?.entitlement()?.let {
+        mapOf(
+          "isEnforced" to it.isEnforced,
+          "state" to it.state,
+          "renewsAt" to it.renewsAt,
+          "commandQuota" to it.commandQuota,
+          "commandsUsed" to it.commandsUsed,
+        )
+      }
+    }
+
+    AsyncFunction("deleteUserData") {
+      val isDeleted = pipeline()?.deleteUserData() ?: false
+      if (isDeleted) appContext.reactContext?.let { VoicePipelineForegroundService.stop(it) }
+      isDeleted
     }
 
     AsyncFunction("getServiceState") {
@@ -125,6 +151,7 @@ class VoicePipelineModule : Module() {
         "installId" to (pipeline()?.installId() ?: ""),
         "currentLanguage" to (snapshot?.language ?: PhraseCatalog.language),
         "wakeWord" to (pipeline()?.wakeWord() ?: "echo"),
+        "modelProgress" to pipeline()?.modelProgress()?.toDouble(),
       )
     }
 

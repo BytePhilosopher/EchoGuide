@@ -978,7 +978,7 @@ components:
     ActionType:
       type: string
       description: The allowlist. Any other action is rejected before it reaches the phone.
-      enum: [TAP, SCROLL, TEXT_INPUT, BACK, HOME]
+      enum: [TAP, SCROLL, TEXT_INPUT, BACK, HOME, OPEN_APP]
 
     ActionStep:
       type: object
@@ -994,7 +994,7 @@ components:
           description: Node in the reduced view tree.
         payload:
           type: string
-          description: Text for TEXT_INPUT.
+          description: Text for TEXT_INPUT. The app's name, as the user said it, for OPEN_APP.
         is_destructive:
           type: boolean
           description: Forces a spoken confirmation before the step runs.

@@ -56,8 +56,9 @@ const SAMPLE_RATE = 16_000;
 const PLAN_INSTRUCTION = [
   'You turn a spoken command into a plan of interface actions for an Android phone.',
   'Reply with JSON only. No prose, no code fence.',
-  'Shape: {"package_name":string,"requires_user_confirmation":boolean,"steps":[{"action_type":"TAP"|"SCROLL"|"TEXT_INPUT"|"BACK"|"HOME","target_node_id":string|null,"payload":string|null,"is_destructive":boolean}]}',
+  'Shape: {"requires_user_confirmation":boolean,"steps":[{"action_type":"TAP"|"SCROLL"|"TEXT_INPUT"|"BACK"|"HOME"|"OPEN_APP","target_node_id":string|null,"payload":string|null,"is_destructive":boolean}]}',
   'Only use target_node_id values that appear in the screen listing.',
+  'To open an app, use one OPEN_APP step as the last step, with the app's usual English name in payload, even when the command is in Amharic (for example "Settings" or "Telegram").',
   'Set is_destructive true for anything that sends, pays, deletes or cannot be undone.',
   'If the command cannot be carried out on this screen, reply {"steps":[]}.',
 ].join('\n');
@@ -140,7 +141,8 @@ export class AddisAIAdapter implements TranscriptionPort, PlanningPort {
     return {
       ...parsed,
       plan_id: randomUUID(),
-      package_name: parsed.package_name ?? screenContext.current_package,
+      // Every plan acts on the screen the phone described, whatever the planner names.
+      package_name: screenContext.current_package,
       steps: Array.isArray(parsed.steps) ? parsed.steps.map(normalizeStep) : parsed.steps,
     };
   }

@@ -16,6 +16,8 @@ object PlanValidator {
     UNKNOWN_TARGET_NODE,
     MISSING_TARGET_NODE,
     MISSING_TEXT_PAYLOAD,
+    MISSING_APP_NAME,
+    OPEN_APP_NOT_LAST,
   }
 
   private val NODE_ADDRESSED = setOf(ActionType.TAP, ActionType.SCROLL, ActionType.TEXT_INPUT)
@@ -31,7 +33,12 @@ object PlanValidator {
       return Verdict.Blocked(Reason.FOREGROUND_PACKAGE_MISMATCH)
     }
 
-    plan.steps.forEach { step ->
+    plan.steps.forEachIndexed { index, step ->
+      if (step.actionType == ActionType.OPEN_APP) {
+        if (step.payload.isNullOrBlank()) return Verdict.Blocked(Reason.MISSING_APP_NAME)
+        // Steps after it would target a screen that was never described.
+        if (index != plan.steps.lastIndex) return Verdict.Blocked(Reason.OPEN_APP_NOT_LAST)
+      }
       if (step.actionType in NODE_ADDRESSED) {
         val nodeId = step.targetNodeId
           ?: return Verdict.Blocked(Reason.MISSING_TARGET_NODE)
