@@ -13,6 +13,10 @@ export const ConfirmationOverlay: React.FC = () => {
   const { state } = useAppState();
   const language = state.selectedLanguage;
   const visible = isAwaitingConfirmation(pipeline);
+  const title = pipeline.grantFor ? t('grantTitle', language) : t('confirmTitle', language);
+  const body = pipeline.grantFor
+    ? `${pipeline.grantFor}. ${t('grantBody', language)}`
+    : t('confirmBody', language);
 
   React.useEffect(() => {
     if (visible) {
@@ -34,18 +38,18 @@ export const ConfirmationOverlay: React.FC = () => {
           accessibilityViewIsModal
           accessibilityRole="alert"
           accessibilityLiveRegion="assertive"
-          accessibilityLabel={`${t('confirmTitle', language)}. ${t('confirmBody', language)}`}
+          accessibilityLabel={`${title}. ${body}`}
         >
           <Text style={styles.title} accessibilityRole="header">
-            {t('confirmTitle', language)}
+            {title}
           </Text>
-          <Text style={styles.body}>{t('confirmBody', language)}</Text>
+          <Text style={styles.body}>{body}</Text>
 
           <PrimaryButton
             title={t('confirmYes', language)}
             onPress={() => VoicePipelineBridge.confirmPending(true)}
             variant="primary"
-            accessibilityHint={t('confirmYesHint', language)}
+            accessibilityHint={pipeline.grantFor ? undefined : t('confirmYesHint', language)}
             style={styles.action}
           />
           <PrimaryButton

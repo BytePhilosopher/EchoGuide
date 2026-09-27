@@ -9,6 +9,11 @@ const STRINGS = {
   confirmYes: { 'am-ET': 'አዎ፣ ቀጥል', 'en-US': 'Yes, continue' },
   confirmNo: { 'am-ET': 'አይ፣ ተወው', 'en-US': 'No, cancel' },
   confirmYesHint: { 'am-ET': 'እርምጃውን ያከናውናል', 'en-US': 'Performs the action' },
+  grantTitle: { 'am-ET': 'የድምጽ ቁጥጥር ይፈቀድ?', 'en-US': 'Allow voice control?' },
+  grantBody: {
+    'am-ET': 'EchoGuide በዚህ መተግበሪያ ውስጥ የድምጽ ትእዛዞችዎን እንዲፈጽም ይፈቅዳሉ?',
+    'en-US': 'Allow EchoGuide to carry out your voice commands in this app?',
+  },
   confirmNoHint: { 'am-ET': 'ትእዛዙን ይሰርዛል', 'en-US': 'Cancels the command' },
   listening: { 'am-ET': 'በማዳመጥ ላይ', 'en-US': 'Listening' },
   paused: { 'am-ET': 'ቆሟል', 'en-US': 'Paused' },
@@ -31,6 +36,37 @@ const STRINGS = {
     'am-ET': 'EchoGuide በተደራሽነት ቅንብሮች ውስጥ ያብሩት፣ ስራ እንዲሰራልዎ።',
     'en-US': 'Turn on EchoGuide in Accessibility settings so it can act for you.',
   },
+  micTitle: { 'am-ET': 'ማይክሮፎን ያስፈልጋል', 'en-US': 'Microphone needed' },
+  micBody: {
+    'am-ET': 'EchoGuide ትእዛዞችዎን ለመስማት ማይክሮፎን ያስፈልገዋል። በመተግበሪያ ቅንብሮች ውስጥ ይፍቀዱ።',
+    'en-US': 'EchoGuide needs the microphone to hear your commands. Allow it in app settings.',
+  },
+  openAppSettings: { 'am-ET': 'የመተግበሪያ ቅንብሮችን ክፈት', 'en-US': 'Open app settings' },
+  a11yStepOpen: {
+    'am-ET': 'የተደራሽነት ቅንብሮችን ይክፈቱ። EchoGuide ን ይፈልጉ (በ"የተጫኑ መተግበሪያዎች" ወይም "የወረዱ መተግበሪያዎች" ስር ሊሆን ይችላል) እና ያብሩት።',
+    'en-US': 'Open Accessibility settings. Find EchoGuide (it may be under "Installed apps" or "Downloaded apps") and turn it on.',
+  },
+  a11yStepConfirm: {
+    'am-ET': 'Android ሲጠይቅ "ፍቀድ" ን ይንኩ። ከዚያ ወደ EchoGuide ይመለሱ።',
+    'en-US': 'When Android asks, tap "Allow". Then come back to EchoGuide.',
+  },
+  a11yStepRestricted: {
+    'am-ET': '"የተገደበ ቅንብር" የሚል መልዕክት ካዩ "እሺ" ን ይንኩ። Android ከPlay መደብር ውጭ የተጫኑ መተግበሪያዎችን በዚህ መንገድ ይጠብቃል። ስህተት አይደለም።',
+    'en-US': 'If you see "Restricted setting", tap "OK". Android does this for apps installed outside the Play Store. Nothing is wrong.',
+  },
+  a11yStepAllow: {
+    'am-ET': 'የመተግበሪያ መረጃን ይክፈቱ። ከላይ በቀኝ ያለውን ⋮ ምናሌ ይንኩ፣ "የተገደቡ ቅንብሮችን ፍቀድ" ን ይምረጡ፣ እና በፒን ወይም በጣት አሻራ ያረጋግጡ።',
+    'en-US': 'Open App info. Tap the ⋮ menu at the top right, choose "Allow restricted settings", and confirm with your PIN or fingerprint.',
+  },
+  a11yStepFinish: {
+    'am-ET': 'ወደ የተደራሽነት ቅንብሮች ይመለሱ፣ EchoGuide ን ያብሩ፣ እና "ፍቀድ" ን ይንኩ።',
+    'en-US': 'Go back to Accessibility settings, turn on EchoGuide, and tap "Allow".',
+  },
+  a11yStepDone: {
+    'am-ET': 'ሲበራ ይህ መመሪያ ይጠፋል።',
+    'en-US': 'Once it is on, this guide disappears.',
+  },
+  openAppInfo: { 'am-ET': 'የመተግበሪያ መረጃን ክፈት', 'en-US': 'Open App info' },
   openAccessibility: { 'am-ET': 'የተደራሽነት ቅንብሮችን ክፈት', 'en-US': 'Open Accessibility settings' },
   openAccessibilityHint: {
     'am-ET': 'EchoGuide ን ለማብራት የAndroid ቅንብሮችን ይከፍታል',
@@ -91,10 +127,6 @@ const STRINGS = {
   serviceActive: { 'am-ET': 'ነቅቷል', 'en-US': 'Active' },
   serviceSetupNeeded: { 'am-ET': 'ማዋቀር ያስፈልጋል', 'en-US': 'Setup needed' },
   serviceConnected: { 'am-ET': 'አገልግሎቱ ተገናኝቷል።', 'en-US': 'The service is connected.' },
-  serviceWillPrompt: {
-    'am-ET': 'በAndroid ቅንብሮች ውስጥ እንዲያበሩት ይጠየቃሉ።',
-    'en-US': 'You will be asked to turn it on in Android settings.',
-  },
   finishSetup: { 'am-ET': 'ማዋቀር ጨርስ', 'en-US': 'Finish setup' },
   finishing: { 'am-ET': 'በማዋቀር ላይ...', 'en-US': 'Setting up...' },
   settingsTitle: { 'am-ET': 'ቅንብሮች', 'en-US': 'Settings' },
@@ -106,6 +138,40 @@ const STRINGS = {
     'en-US': 'EchoGuide will stop listening immediately. You can turn it back on later.',
   },
   revokeConsentDone: { 'am-ET': 'ፈቃዱ ተሰርዟል።', 'en-US': 'Consent revoked.' },
+  notSyncedTitle: { 'am-ET': 'አገልጋዩ ላይ መድረስ አልተቻለም', 'en-US': 'Could not reach the server' },
+  revokeNotSynced: {
+    'am-ET': 'ፈቃዱ በዚህ መሣሪያ ላይ ተሰርዟል፣ ነገር ግን አገልጋዩ ላይ አልተመዘገበም። መረብ ሲኖር እንደገና ይሞክሩ።',
+    'en-US': 'Consent is revoked on this device, but the server did not record it. Try again when you are online.',
+  },
+  retentionNotSaved: {
+    'am-ET': 'ምርጫዎ አልተቀመጠም። መረብ ሲኖር እንደገና ይሞክሩ።',
+    'en-US': 'Your choice was not saved. Try again when you are online.',
+  },
+  deleteData: { 'am-ET': 'መረጃዬን ሰርዝ', 'en-US': 'Delete my data' },
+  deleteDataSub: {
+    'am-ET': 'መለያዎን እና ከእሱ ጋር የተያያዘውን መረጃ ሁሉ ከአገልጋዩ እና ከዚህ መሣሪያ ይሰርዛል።',
+    'en-US': 'Deletes your account and everything tied to it, on the server and on this device.',
+  },
+  deleteDataTitle: { 'am-ET': 'መረጃዎ ሁሉ ይሰረዝ?', 'en-US': 'Delete all your data?' },
+  deleteDataBody: {
+    'am-ET': 'ይህ መቀልበስ አይቻልም። EchoGuideን እንደገና ለመጠቀም ከመጀመሪያው ማዋቀር ያስፈልግዎታል።',
+    'en-US': 'This cannot be undone. You will need to set EchoGuide up again to keep using it.',
+  },
+  deleteDataFailed: {
+    'am-ET': 'መረጃዎ አልተሰረዘም። መረብ ሲኖር እንደገና ይሞክሩ።',
+    'en-US': 'Your data was not deleted. Try again when you are online.',
+  },
+  planLoading: { 'am-ET': 'እቅድዎን በመጫን ላይ', 'en-US': 'Loading your plan' },
+  planUnavailable: {
+    'am-ET': 'እቅድዎን መጫን አልተቻለም።',
+    'en-US': 'Your plan could not be loaded.',
+  },
+  planRetry: { 'am-ET': 'እንደገና ሞክር', 'en-US': 'Try again' },
+  planFree: { 'am-ET': 'ነፃ አጠቃቀም', 'en-US': 'Free access' },
+  planFreeSub: {
+    'am-ET': 'አሁን ትእዛዞች ያለ ክፍያ ይሰራሉ።',
+    'en-US': 'Commands run without a paid plan for now.',
+  },
   cancel: { 'am-ET': 'ተወው', 'en-US': 'Cancel' },
   revoking: { 'am-ET': 'በመሰረዝ ላይ...', 'en-US': 'Revoking...' },
   accountTitle: { 'am-ET': 'መለያ', 'en-US': 'Account' },
@@ -177,8 +243,24 @@ const STRINGS = {
   sectionPerformance: { 'am-ET': 'አጠቃቀም', 'en-US': 'USAGE' },
   sectionTryThese: { 'am-ET': 'እነዚህን ይሞክሩ', 'en-US': 'TRY THESE' },
   tryThesePrompt: { 'am-ET': 'የድምጽ ትእዛዞች', 'en-US': 'Voice commands' },
-  tipSendMessage: { 'am-ET': 'መልእክት ይከፍታል', 'en-US': 'Opens messaging' },
-  tipOpenSettings: { 'am-ET': 'ቅንብሮችን ይከፍታል', 'en-US': 'Opens settings' },
+  exampleOpenApp: { 'am-ET': 'ቴሌግራምን ክፈት', 'en-US': 'open Telegram' },
+  tipOpenApp: { 'am-ET': 'መተግበሪያውን ይከፍታል', 'en-US': 'Opens the app' },
+  exampleTap: { 'am-ET': 'Wi-Fi ን ንካ', 'en-US': 'tap Wi-Fi' },
+  tipTap: {
+    'am-ET': 'በማያ ገጹ ላይ የሚታየውን ይነካል',
+    'en-US': 'Taps something you can see on the screen',
+  },
+  exampleScroll: { 'am-ET': 'ወደ ታች አሸብልል', 'en-US': 'scroll down' },
+  tipScroll: { 'am-ET': 'ገጹን ያሸብልላል', 'en-US': 'Scrolls the page' },
+  howToUse: {
+    'am-ET': 'ወደ ማንኛውም መተግበሪያ ይሂዱ፣ ከዚያ የማንቂያ ቃሉን ይናገሩ ወይም የተደራሽነት አዝራሩን ይንኩ፣ እና በዚያ ማያ ገጽ ላይ ያለውን ይናገሩ። EchoGuide የሚሰራው አሁን በሚያዩት ማያ ገጽ ላይ ነው።',
+    'en-US': 'Go to any app, then say the wake word or tap the Accessibility button, and say what to do on that screen. EchoGuide acts on the screen you are looking at.',
+  },
+  modelSetupTitle: { 'am-ET': 'ድምጽ በማዘጋጀት ላይ', 'en-US': 'Setting up voice' },
+  modelSetupBody: {
+    'am-ET': 'ይህ በመጀመሪያ ጊዜ ብቻ ነው። እስኪጠናቀቅ ድረስ ማይክሮፎኑን ይንኩ።',
+    'en-US': 'This happens once. Until it finishes, tap the microphone to speak.',
+  },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

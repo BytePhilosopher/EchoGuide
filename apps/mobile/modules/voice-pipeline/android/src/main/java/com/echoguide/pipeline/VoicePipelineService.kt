@@ -3,10 +3,13 @@ package com.echoguide.pipeline
 import android.content.Context
 import com.echoguide.executor.AccessibilityExecutorService
 import com.echoguide.executor.PlanValidator
+import com.echoguide.network.AccountApi
 import com.echoguide.network.ActionPlan
 import com.echoguide.network.AuthApi
 import com.echoguide.network.CommandApi
 import com.echoguide.network.CommandResult
+import com.echoguide.network.CommandStatus
+import com.echoguide.network.Entitlement
 import com.echoguide.network.ScreenContext
 import com.echoguide.network.SessionManager
 import com.echoguide.network.SpeakCode
@@ -19,6 +22,7 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -35,6 +39,7 @@ class VoicePipelineService private constructor(private val context: Context) {
   private val state = ServiceStateStore(context)
   private val api = CommandApi()
   private val telemetry = TelemetryClient()
+  private val account = AccountApi()
   private val sessions = SessionManager(
     api = AuthApi(),
     store = state,
@@ -44,15 +49,28 @@ class VoicePipelineService private constructor(private val context: Context) {
   private val capture = AudioCapture()
   private val synthesizer = SpeechSynthesizer(context)
   private val machine = CommandStateMachine()
-  private val installer = VoskModelInstaller(File(context.filesDir, "models"))
+  private val installer = VoskModelInstaller(
+    modelRoot = File(context.filesDir, "models"),
+    openModel = { context.assets.open(MODEL_ASSET) },
+    modelBytes = runCatching { context.assets.openFd(MODEL_ASSET).use { it.length } }.getOrDefault(-1L),
+  )
+
+  /** 0..1 while the bundled model is being unpacked, null otherwise. */
+  @Volatile
+  private var modelProgress: Float? = null
   private var detector = WakeWordDetector(installer.modelDirectory, state.wakeWord)
 
+  // The microphone and the command in flight. The wake loop holds this thread for as long as it
+  // listens, so nothing that must run meanwhile may be queued on it.
   private val worker = Executors.newSingleThreadExecutor()
+  private val background = Executors.newSingleThreadExecutor()
+  private val answers = LinkedBlockingQueue<Boolean>()
   private val timers: ScheduledExecutorService = ScheduledThreadPoolExecutor(1)
   private val isBusy = AtomicBoolean(false)
   private val wakeLoopRunning = AtomicBoolean(false)
 
-  private var pendingPlan: ActionPlan? = null
+  @Volatile
+  private var pendingGrant: String? = null
 
   init {
     AccessibilityExecutorService.onShortcut = { triggerOnce() }
@@ -72,12 +90,26 @@ class VoicePipelineService private constructor(private val context: Context) {
     language = state.language,
   )
 
+  /** Downloads the wake word model. Listening itself starts only inside the foreground service. */
   fun prepareWakeWord() {
-    worker.execute {
-      if (installer.install()) startWakeWordLoop()
+    background.execute {
+      if (installer.isInstalled()) return@execute publishState()
+      var lastPercent = -1
+      modelProgress = 0f
+      publishState()
+      installer.install { fraction ->
+        val percent = (fraction * 100).toInt()
+        if (percent == lastPercent) return@install
+        lastPercent = percent
+        modelProgress = fraction
+        publishState()
+      }
+      modelProgress = null
       publishState()
     }
   }
+
+  fun modelProgress(): Float? = modelProgress
 
   fun startWakeWordLoop() {
     if (!state.hasConsent) return
@@ -116,6 +148,7 @@ class VoicePipelineService private constructor(private val context: Context) {
   fun stopPipeline() {
     wakeLoopRunning.set(false)
     capture.cancel()
+    answers.offer(false)
     publishState()
   }
 
@@ -124,13 +157,34 @@ class VoicePipelineService private constructor(private val context: Context) {
     state.isWakeWordEnabled = false
   }
 
-  fun setConsent(granted: Boolean) {
+  /** Applies on the device at once; the return value is whether the server recorded it too. */
+  fun setConsent(granted: Boolean): Boolean {
     state.hasConsent = granted
     if (!granted) {
       stopWakeWord()
       capture.cancel()
     }
     publishState()
+    return recordConsent(VOICE_CONTROL_SCOPE, granted)
+  }
+
+  fun recordConsent(scope: String, granted: Boolean): Boolean {
+    val credentials = sessions.credentials() ?: return false
+    return account.recordConsent(credentials, scope, granted)
+  }
+
+  fun entitlement(): Entitlement? = sessions.credentials()?.let(account::entitlement)
+
+  /** The device forgets the account only once the server has accepted the deletion. */
+  fun deleteUserData(): Boolean {
+    val credentials = sessions.credentials() ?: return false
+    if (!account.deleteUserData(credentials)) return false
+    stopWakeWord()
+    capture.cancel()
+    answers.offer(false)
+    state.forgetAccount()
+    publishState()
+    return true
   }
 
   fun hasConsent(): Boolean = state.hasConsent
@@ -154,31 +208,53 @@ class VoicePipelineService private constructor(private val context: Context) {
   fun wakeWord(): String = state.wakeWord
 
   fun registerDevice() {
-    worker.execute {
+    background.execute {
       state.isRegistered = sessions.credentials() != null
     }
   }
 
   fun refreshPhrases(language: String) {
-    worker.execute {
+    background.execute {
       api.fetchPhrases(language)?.let { PhraseCatalog.applyRemote(it) }
     }
   }
 
   fun answerConfirmation(confirmed: Boolean) {
-    val plan = pendingPlan ?: return
-    pendingPlan = null
-    worker.execute {
-      val requestId = UUID.randomUUID().toString()
-      val started = System.currentTimeMillis()
-      if (confirmed) {
-        machine.on(CommandStateMachine.Event.UserConfirmed)
-        finish(runPlan(plan), started, requestId)
-      } else {
-        speak(machine.on(CommandStateMachine.Event.UserDeclined).speak)
-        publish(machine.telemetryOutcome(), elapsed(started), requestId)
-      }
+    answers.offer(confirmed)
+  }
+
+  /** Waits on the command's own thread for the user's yes or no. No answer in time is a no. */
+  private fun awaitAnswer(): Boolean {
+    answers.clear()
+    publishState()
+    return try {
+      answers.poll(ANSWER_TIMEOUT_SECONDS, TimeUnit.SECONDS) == true
+    } catch (_: InterruptedException) {
+      false
     }
+  }
+
+  private fun isGrantedNow(packageName: String): Boolean {
+    pendingGrant = packageName
+    machine.on(CommandStateMachine.Event.GrantRequired)
+    synthesizer.playPhrase(GRANT_APP_PHRASE)
+    val confirmed = awaitAnswer()
+    pendingGrant = null
+
+    if (!confirmed) {
+      speak(machine.on(CommandStateMachine.Event.UserDeclined).speak)
+      return false
+    }
+    val isRecorded =
+      sessions.credentials()?.let { account.recordAppGrant(it, packageName, granted = true) } == true
+    if (!isRecorded) {
+      speak(machine.on(CommandStateMachine.Event.NetworkFailed(SpeakCode.ERR_NETWORK)).speak)
+      return false
+    }
+    state.grantedApps = state.grantedApps + packageName
+    machine.on(CommandStateMachine.Event.WakeWord)
+    publishState()
+    return true
   }
 
   private fun runCommand() {
@@ -201,6 +277,12 @@ class VoicePipelineService private constructor(private val context: Context) {
     if (screen?.hasSensitiveField == true) {
       machine.on(CommandStateMachine.Event.BufferTooShort)
       publish(machine.telemetryOutcome(), elapsed(started), requestId)
+      return
+    }
+
+    // The server refuses plans for apps the user has not allowed, so ask before recording.
+    if (foreground.isNotEmpty() && foreground !in state.grantedApps && !isGrantedNow(foreground)) {
+      publishState()
       return
     }
 
@@ -271,6 +353,12 @@ class VoicePipelineService private constructor(private val context: Context) {
         val response = result.response
         val plan = response.actionPlan
 
+        // ponytail: matches the server's reason text; give the response a reason code if it grows.
+        // The server no longer holds this grant (new account, revoked elsewhere): ask again next time.
+        if (response.status == CommandStatus.REJECTED && response.repromptReason == APP_NOT_AUTHORIZED) {
+          state.grantedApps = state.grantedApps - foreground
+        }
+
         if (plan != null && !revalidate(plan, foreground)) {
           speak(machine.on(CommandStateMachine.Event.PlanBlockedLocally).speak)
           publish(machine.telemetryOutcome(), elapsed(started), requestId, stageTimings)
@@ -285,10 +373,20 @@ class VoicePipelineService private constructor(private val context: Context) {
         response.speechResponseText?.let { synthesizer.speak(it, state.language) }
 
         when (transition.state) {
-          CommandStateMachine.State.CONFIRMING -> {
-            pendingPlan = transition.plan
-            publishState()
-          }
+          CommandStateMachine.State.CONFIRMING ->
+            if (awaitAnswer()) {
+              machine.on(CommandStateMachine.Event.UserConfirmed)
+              publishState()
+              val executeStarted = System.currentTimeMillis()
+              val success = runPlan(transition.plan)
+              finish(
+                success, started, requestId,
+                stageTimings + ("execute" to elapsed(executeStarted)),
+              )
+            } else {
+              speak(machine.on(CommandStateMachine.Event.UserDeclined).speak)
+              publish(machine.telemetryOutcome(), elapsed(started), requestId, stageTimings)
+            }
           CommandStateMachine.State.EXECUTING -> {
             val executeStarted = System.currentTimeMillis()
             val success = runPlan(transition.plan)
@@ -345,7 +443,7 @@ class VoicePipelineService private constructor(private val context: Context) {
         "timestamp" to isoTimestamp(),
       ),
     )
-    worker.execute {
+    background.execute {
       val credentials = sessions.credentials()
       telemetry.emit(outcome, durationMs, stageTimings, credentials?.installId ?: state.installId, requestId, credentials?.sessionToken)
     }
@@ -360,9 +458,16 @@ class VoicePipelineService private constructor(private val context: Context) {
         "isListening" to snapshot.isListening,
         "wakeWordAvailable" to snapshot.isWakeWordReady,
         "accessibilityEnabled" to snapshot.isExecutorEnabled,
+        "grantFor" to pendingGrant?.let(::appLabel),
+        "modelProgress" to modelProgress?.toDouble(),
       ),
     )
   }
+
+  private fun appLabel(packageName: String): String = runCatching {
+    val manager = context.packageManager
+    manager.getApplicationLabel(manager.getApplicationInfo(packageName, 0)).toString()
+  }.getOrDefault(packageName)
 
   private fun elapsed(started: Long): Long = System.currentTimeMillis() - started
 
@@ -375,6 +480,12 @@ class VoicePipelineService private constructor(private val context: Context) {
     private const val STILL_WORKING_AFTER_MS = 3_000L
     private const val MIN_UPLOAD_MS = 400
     private const val MAX_UPLOAD_MS = 15_000
+    private const val ANSWER_TIMEOUT_SECONDS = 30L
+    private const val MODEL_ASSET = "vosk-model.zip"
+    private const val GRANT_APP_PHRASE = "GRANT_APP"
+    private const val APP_NOT_AUTHORIZED = "App not authorized for voice control"
+    const val VOICE_CONTROL_SCOPE = "voice_control"
+    const val AUDIO_RETENTION_SCOPE = "audio_retention"
 
     @Volatile
     private var instance: VoicePipelineService? = null

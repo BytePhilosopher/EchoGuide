@@ -45,6 +45,23 @@ class ServiceStateStore(context: Context) : CredentialStore {
     get() = prefs.getBoolean(KEY_REGISTERED, false)
     set(value) = prefs.edit().putBoolean(KEY_REGISTERED, value).apply()
 
+  var grantedApps: Set<String>
+    get() = prefs.getStringSet(KEY_GRANTED_APPS, emptySet()).orEmpty()
+    set(value) = prefs.edit().putStringSet(KEY_GRANTED_APPS, value).apply()
+
+  /** Forgets the account: the next command registers a new install with nothing granted. */
+  fun forgetAccount() {
+    prefs.edit()
+      .remove(KEY_INSTALL_ID)
+      .remove(KEY_SESSION_TOKEN)
+      .remove(KEY_SESSION_EXPIRES_AT)
+      .remove(KEY_GRANTED_APPS)
+      .remove(KEY_REGISTERED)
+      .remove(KEY_CONSENT)
+      .remove(KEY_WAKE_WORD)
+      .apply()
+  }
+
   private fun newInstallId(): String {
     val generated = java.util.UUID.randomUUID().toString()
     prefs.edit().putString(KEY_INSTALL_ID, generated).apply()
@@ -61,6 +78,7 @@ class ServiceStateStore(context: Context) : CredentialStore {
     const val KEY_CONSENT = "consent_granted"
     const val KEY_REGISTERED = "device_registered"
     const val KEY_WAKE_PHRASE = "wake_phrase"
+    const val KEY_GRANTED_APPS = "granted_apps"
     const val DEFAULT_LANGUAGE = "am-ET"
     const val DEFAULT_WAKE_WORD = "echo"
   }

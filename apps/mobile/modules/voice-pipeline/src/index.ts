@@ -17,6 +17,8 @@ export interface ServiceState {
   wakeWord: string;
   installId: string;
   currentLanguage: LanguageCode;
+  /** 0..1 while the wake word model is being set up on first launch, null otherwise. */
+  modelProgress: number | null;
 }
 
 export interface PermissionStatus {
@@ -37,6 +39,20 @@ export interface PipelineStateEvent {
   isListening: boolean;
   wakeWordAvailable: boolean;
   accessibilityEnabled: boolean;
+  /** Set while CONFIRMING asks to allow an app, rather than to run a plan. */
+  grantFor: string | null;
+  modelProgress: number | null;
+}
+
+export type SubscriptionState =
+  | 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE' | 'EXPIRED' | 'NONE' | 'UNKNOWN';
+
+export interface Entitlement {
+  isEnforced: boolean;
+  state: SubscriptionState;
+  renewsAt: string | null;
+  commandQuota: number | null;
+  commandsUsed: number | null;
 }
 
 interface EventSubscription {
@@ -52,7 +68,7 @@ interface VoicePipelineNative {
     event: 'onPipelineState',
     listener: (payload: PipelineStateEvent) => void,
   ): EventSubscription;
-  startListening(): void;
+  startListening(): boolean;
   stopListening(): void;
   triggerListening(): void;
   confirmPending(confirmed: boolean): Promise<void>;
@@ -63,7 +79,10 @@ interface VoicePipelineNative {
   openAccessibilitySettings(): Promise<boolean>;
   openVoiceSettings(): Promise<boolean>;
   setLanguage(languageCode: LanguageCode): Promise<boolean>;
-  revokeConsent(): Promise<void>;
+  revokeConsent(): Promise<boolean>;
+  setAudioRetention(optIn: boolean): Promise<boolean>;
+  getEntitlement(): Promise<Entitlement | null>;
+  deleteUserData(): Promise<boolean>;
   getServiceState(): Promise<ServiceState>;
   getPermissionStatus(): Promise<PermissionStatus>;
 }

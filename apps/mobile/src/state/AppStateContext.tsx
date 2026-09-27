@@ -29,12 +29,6 @@ export interface AppState {
   wakeWord: string;
   commandHistory: CommandOutcome[];
   consentTrail: ConsentEvent[];
-  subscription: {
-    plan: string;
-    status: 'active' | 'expired' | 'trial' | 'none';
-    renewsAt: string | null;
-    commandsThisPeriod: number;
-  };
   accessibilityServiceEnabled: boolean;
 }
 
@@ -61,12 +55,6 @@ const initialState: AppState = {
   wakeWord: 'echo',
   commandHistory: [],
   consentTrail: [],
-  subscription: {
-    plan: 'EchoGuide',
-    status: 'none',
-    renewsAt: null,
-    commandsThisPeriod: 0,
-  },
   accessibilityServiceEnabled: false,
 };
 
@@ -94,10 +82,6 @@ function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         commandHistory: [action.outcome, ...state.commandHistory].slice(0, 200),
-        subscription: {
-          ...state.subscription,
-          commandsThisPeriod: state.subscription.commandsThisPeriod + 1,
-        },
       };
 
     case 'CLEAR_HISTORY':
@@ -181,7 +165,6 @@ export const AppStateProvider: React.FC<ProviderProps> = ({ children }) => {
           wakeWord: state.wakeWord,
           commandHistory: state.commandHistory,
           consentTrail: state.consentTrail,
-          subscription: state.subscription,
         };
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
       } catch (e) {

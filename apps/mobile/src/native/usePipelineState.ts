@@ -9,6 +9,9 @@ export interface PipelineStatus {
   wakeWordAvailable: boolean;
   accessibilityEnabled: boolean;
   hasVoice: boolean;
+  grantFor: string | null;
+  microphoneGranted: boolean;
+  modelProgress: number | null;
 }
 
 export const isAwaitingConfirmation = (status: PipelineStatus): boolean =>
@@ -21,6 +24,9 @@ const INITIAL: PipelineStatus = {
   wakeWordAvailable: false,
   accessibilityEnabled: false,
   hasVoice: true,
+  grantFor: null,
+  microphoneGranted: true,
+  modelProgress: null,
 };
 
 export function usePipelineState(): PipelineStatus {
@@ -30,7 +36,10 @@ export function usePipelineState(): PipelineStatus {
     let cancelled = false;
 
     const refresh = async () => {
-      const service = await VoicePipelineBridge.getServiceState();
+      const [service, permissions] = await Promise.all([
+        VoicePipelineBridge.getServiceState(),
+        VoicePipelineBridge.getPermissionStatus(),
+      ]);
       if (cancelled) return;
       setStatus((previous) => ({
         ...previous,
@@ -39,6 +48,8 @@ export function usePipelineState(): PipelineStatus {
         wakeWordAvailable: service.isWakeWordReady,
         accessibilityEnabled: service.isAccessibilityEnabled,
         hasVoice: service.hasVoice,
+        microphoneGranted: permissions.microphoneGranted,
+        modelProgress: service.modelProgress,
       }));
     };
 
@@ -52,6 +63,8 @@ export function usePipelineState(): PipelineStatus {
         state: event.state,
         wakeWordAvailable: event.wakeWordAvailable,
         accessibilityEnabled: event.accessibilityEnabled,
+        grantFor: event.grantFor,
+        modelProgress: event.modelProgress,
       }));
     });
 
