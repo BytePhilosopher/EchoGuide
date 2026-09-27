@@ -119,7 +119,7 @@ class SessionManagerTest {
   }
 
   @Test
-  fun `offline with a still-valid session keeps using it; offline and expired gives nothing`() {
+  fun `offline with a still-valid session keeps using it, offline and expired gives nothing`() {
     val store = MemoryStore().apply {
       sessionToken = "egs_valid"
       sessionExpiresAtMs = now + 1000
