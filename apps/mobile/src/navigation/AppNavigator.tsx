@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { House, ListChecks, Settings, User, type LucideIcon } from 'lucide-react-native';
 import { Theme } from '../design/theme';
 import { HomeScreen } from '../features/home/HomeScreen';
@@ -23,17 +24,19 @@ export const AppNavigator: React.FC = () => {
   const { state, dispatch } = useAppState();
   const [activeTab, setActiveTab] = useState<TabName>('home');
   const language = state.selectedLanguage;
+  // Android draws edge to edge, so the status bar and the system navigation buttons overlap the app.
+  const insets = useSafeAreaInsets();
 
   if (!state.onboardingComplete) {
     return (
-      <OnboardingScreen onComplete={() => dispatch({ type: 'COMPLETE_ONBOARDING' })} />
+      <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <OnboardingScreen onComplete={() => dispatch({ type: 'COMPLETE_ONBOARDING' })} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Theme.colors.ground} />
-
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <View style={styles.screen}>
         {activeTab === 'home' ? <HomeScreen /> : null}
         {activeTab === 'history' ? <HistoryScreen /> : null}
@@ -41,7 +44,10 @@ export const AppNavigator: React.FC = () => {
         {activeTab === 'account' ? <AccountScreen /> : null}
       </View>
 
-      <View style={styles.tabBar} accessibilityRole="tablist">
+      <View
+        style={[styles.tabBar, { paddingBottom: insets.bottom + Theme.spacing.sm }]}
+        accessibilityRole="tablist"
+      >
         {TABS.map(({ name, icon: Icon, label }) => {
           const isActive = activeTab === name;
           return (
@@ -67,7 +73,7 @@ export const AppNavigator: React.FC = () => {
           );
         })}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -75,7 +81,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Theme.colors.ground,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   screen: {
     flex: 1,
@@ -85,7 +90,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Theme.colors.line,
     backgroundColor: Theme.colors.sunken,
-    paddingBottom: Theme.spacing.sm,
   },
   tab: {
     flex: 1,
