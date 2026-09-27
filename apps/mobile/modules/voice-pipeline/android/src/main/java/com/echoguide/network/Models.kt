@@ -2,7 +2,7 @@ package com.echoguide.network
 
 import org.json.JSONObject
 
-enum class ActionType { TAP, SCROLL, TEXT_INPUT, BACK, HOME }
+enum class ActionType { TAP, SCROLL, TEXT_INPUT, BACK, HOME, OPEN_APP }
 
 data class ActionStep(
   val stepId: String,

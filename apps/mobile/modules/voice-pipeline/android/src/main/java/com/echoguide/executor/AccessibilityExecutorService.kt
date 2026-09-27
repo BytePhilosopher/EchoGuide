@@ -3,6 +3,7 @@ package com.echoguide.executor
 import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.Intent
 import android.graphics.Path
 import android.graphics.Rect
 import android.os.Bundle
@@ -64,18 +65,10 @@ class AccessibilityExecutorService : AccessibilityService() {
 
   fun execute(plan: ActionPlan): Boolean {
     plan.steps.forEachIndexed { index, step ->
-      if (!isStillAddressable(step)) return false
       if (!perform(step)) return false
       if (index < plan.steps.lastIndex) awaitSettle()
     }
     return true
-  }
-
-  private fun isStillAddressable(step: ActionStep): Boolean {
-    if (step.actionType !in NODE_ADDRESSED) return true
-    val nodeId = step.targetNodeId ?: return false
-    val root = rootInActiveWindow ?: return false
-    return root.findAccessibilityNodeInfosByViewId(nodeId)?.isNotEmpty() == true
   }
 
   private fun awaitSettle() {
@@ -98,12 +91,28 @@ class AccessibilityExecutorService : AccessibilityService() {
       }
       node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
     }
+    ActionType.OPEN_APP -> openApp(step.payload.orEmpty())
   }
 
+  private fun openApp(name: String): Boolean {
+    val launchers = packageManager.queryIntentActivities(
+      Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),
+      0,
+    )
+    val labels = launchers.map { it.loadLabel(packageManager).toString() }
+    val activity = AppNameMatcher.bestMatch(name, labels)?.let { launchers[it].activityInfo }
+      ?: return false
+    val intent = Intent(Intent.ACTION_MAIN)
+      .addCategory(Intent.CATEGORY_LAUNCHER)
+      .setClassName(activity.packageName, activity.name)
+      .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+    return runCatching { startActivity(intent) }.isSuccess
+  }
+
+  // Ids are the reducer's, not Android view ids: most nodes have no view id, and view ids repeat.
   private inline fun withNode(nodeId: String?, action: (AccessibilityNodeInfo) -> Boolean): Boolean {
     if (nodeId.isNullOrEmpty()) return false
-    val root = rootInActiveWindow ?: return false
-    val node = root.findAccessibilityNodeInfosByViewId(nodeId)?.firstOrNull() ?: return false
+    val node = captureScreen().nodes[nodeId] ?: return false
     return action(node)
   }
 
@@ -144,8 +153,6 @@ class AccessibilityExecutorService : AccessibilityService() {
 
     @Volatile
     var onShortcut: (() -> Unit)? = null
-
-    val NODE_ADDRESSED = setOf(ActionType.TAP, ActionType.SCROLL, ActionType.TEXT_INPUT)
 
     const val SETTLE_TIMEOUT_MS = 400L
     const val TAP_DURATION_MS = 60L
