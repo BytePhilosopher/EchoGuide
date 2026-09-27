@@ -58,12 +58,20 @@ class WakeWordDetector(
     val json = runCatching { JSONObject(payload) }.getOrNull() ?: return false
     val heard = json.optString("text").ifEmpty { json.optString("partial") }
     if (heard.isEmpty()) return false
-    return heard.lowercase().split(' ', '\n', '\t').any { it.trim() == keyword }
+    return containsPhrase(heard, keyword)
   }
 
-  private companion object {
-    const val SAMPLE_RATE = 16_000f
+  companion object {
+    private const val SAMPLE_RATE = 16_000f
 
-    const val DEFAULT_KEYWORD = "echo"
+    private const val DEFAULT_KEYWORD = "echo"
+
+    /** Whole-word match, so "hey echo" matches "hey echo open" but "echo" does not match "echoes". */
+    fun containsPhrase(heard: String, phrase: String): Boolean {
+      val words = heard.lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
+      val target = phrase.lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
+      if (target.isEmpty()) return false
+      return words.windowed(target.size).any { it == target }
+    }
   }
 }
