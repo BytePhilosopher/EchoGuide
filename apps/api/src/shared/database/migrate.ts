@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
+import { exitAfterFlush } from '../logger';
 
 // Same depth from src/ and dist/, so this resolves to apps/api/drizzle in both.
 export const MIGRATIONS_DIR = join(__dirname, '../../../drizzle');
@@ -35,21 +36,22 @@ if (require.main === module) {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     console.error(JSON.stringify({ event: 'db.migrate.failed', error: 'DATABASE_URL is not set' }));
-    process.exit(1);
+    void exitAfterFlush(1);
+  } else {
+    runMigrations(connectionString)
+      .then(() => console.log(JSON.stringify({ event: 'db.migrate.done' })))
+      .catch((error: unknown) => {
+        const code = (error as { code?: string }).code;
+        console.error(
+          JSON.stringify({
+            event: 'db.migrate.failed',
+            error: error instanceof Error ? error.name : 'unknown',
+            code,
+            // Migration failures are operator-facing and contain SQL, never user data.
+            message: error instanceof Error ? error.message : undefined,
+          }),
+        );
+        void exitAfterFlush(1);
+      });
   }
-  runMigrations(connectionString)
-    .then(() => console.log(JSON.stringify({ event: 'db.migrate.done' })))
-    .catch((error: unknown) => {
-      const code = (error as { code?: string }).code;
-      console.error(
-        JSON.stringify({
-          event: 'db.migrate.failed',
-          error: error instanceof Error ? error.name : 'unknown',
-          code,
-          // Migration failures are operator-facing and contain SQL, never user data.
-          message: error instanceof Error ? error.message : undefined,
-        }),
-      );
-      process.exit(1);
-    });
 }
