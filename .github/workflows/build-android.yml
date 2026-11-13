@@ -28,8 +28,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
 
       # 1. Install root dependencies and generate OpenAPI schema / types
       - name: Install root dependencies & build OpenAPI contract
@@ -58,4 +61,3 @@ jobs:
           name: EchoGuide-APK
           path: apps/mobile/android/app/build/outputs/apk/release/*.apk
           retention-days: 14
-
