@@ -1,26 +1,26 @@
 import 'dotenv/config';
 import { ConfigError, parseConfig, type AppConfig } from '../shared/config';
-import { describeError, logStructured } from '../shared/logger';
+import { describeError, exitAfterFlush, logStructured } from '../shared/logger';
 import { waitForRedis } from '../shared/redis/client';
 import { createApp } from './app';
 import { createContainer } from './container';
 import { Worker } from './worker';
 
-function loadConfigOrExit(): AppConfig {
+async function loadConfigOrExit(): Promise<AppConfig> {
   try {
     return parseConfig(process.env);
   } catch (error) {
     if (error instanceof ConfigError) {
       // Variable names and rules only; values are never printed.
       console.error(JSON.stringify({ event: 'api.config_invalid', issues: error.issues }));
-      process.exit(1);
+      return exitAfterFlush(1);
     }
     throw error;
   }
 }
 
 async function main(): Promise<void> {
-  const config = loadConfigOrExit();
+  const config = await loadConfigOrExit();
   const container = createContainer(config);
 
   // Authentication needs Postgres, so an unreachable database is a failed start, not a degraded one.
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
     await container.pool.query('SELECT 1');
   } catch (error) {
     logStructured('api.database_unreachable', describeError(error));
-    process.exit(1);
+    return exitAfterFlush(1);
   }
 
   if (!(await waitForRedis(container.redis, 5000))) {
@@ -66,5 +66,5 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   logStructured('api.start_failed', describeError(error));
-  process.exit(1);
+  void exitAfterFlush(1);
 });

@@ -58,7 +58,7 @@ const PLAN_INSTRUCTION = [
   'Reply with JSON only. No prose, no code fence.',
   'Shape: {"requires_user_confirmation":boolean,"steps":[{"action_type":"TAP"|"SCROLL"|"TEXT_INPUT"|"BACK"|"HOME"|"OPEN_APP","target_node_id":string|null,"payload":string|null,"is_destructive":boolean}]}',
   'Only use target_node_id values that appear in the screen listing.',
-  'To open an app, use one OPEN_APP step as the last step, with the app's usual English name in payload, even when the command is in Amharic (for example "Settings" or "Telegram").',
+  'To open an app, use one OPEN_APP step as the last step, with the app\'s usual English name in payload, even when the command is in Amharic (for example "Settings" or "Telegram").',
   'Set is_destructive true for anything that sends, pays, deletes or cannot be undone.',
   'If the command cannot be carried out on this screen, reply {"steps":[]}.',
 ].join('\n');

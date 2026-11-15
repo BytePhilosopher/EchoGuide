@@ -91,3 +91,21 @@ export function describeError(error: unknown): { error_name: string; error_code?
   else if (typeof status === 'number') result.error_code = status;
   return result;
 }
+
+/**
+ * Exits once stdout and stderr have flushed. On a pipe (how hosts collect logs) writes are
+ * asynchronous and process.exit() drops whatever is still queued, which would lose the very line
+ * explaining why the process stopped.
+ */
+export function exitAfterFlush(code: number): Promise<never> {
+  process.exitCode = code;
+  let pending = 2;
+  const done = () => {
+    pending -= 1;
+    if (pending === 0) process.exit(code);
+  };
+  process.stdout.write('', done);
+  process.stderr.write('', done);
+  // Never resolves: callers return it so nothing after them runs while the streams drain.
+  return new Promise<never>(() => {});
+}
